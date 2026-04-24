@@ -13,11 +13,10 @@ let backendProcess: ChildProcess | null = null;
 
 function resolveBackendEntry(): string | null {
   const candidates = [
+    // packaged: extraResources → resources/backend/dist/...
+    path.join(process.resourcesPath ?? "", "backend", "dist", "backend", "src", "server.js"),
+    // dev: sibling dist folder
     path.resolve(__dirname, "../../backend/dist/backend/src/server.js"),
-    path.resolve(
-      process.resourcesPath ?? "",
-      "backend/dist/backend/src/server.js",
-    ),
   ];
   return candidates.find((p) => existsSync(p)) ?? null;
 }
@@ -77,7 +76,6 @@ function createWindow() {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
     },
   });
 
@@ -86,12 +84,17 @@ function createWindow() {
     return { action: "deny" };
   });
 
-  const indexPath = path.resolve(__dirname, "../../web/dist/index.html");
   const devUrl = process.env.WR_DEV_URL;
   if (devUrl) {
     mainWindow.loadURL(devUrl);
     mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
+    // In packaged app, extraResources land in process.resourcesPath
+    // In dev (electron dist/main.js), fall back to sibling web/dist
+    const resourceBase = app.isPackaged
+      ? process.resourcesPath
+      : path.resolve(__dirname, "../..");
+    const indexPath = path.join(resourceBase, "web", "dist", "index.html");
     mainWindow.loadFile(indexPath);
   }
 

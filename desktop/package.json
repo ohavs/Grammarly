@@ -19,11 +19,13 @@
     "productName": "WriteRight",
     "files": [
       "dist/**/*",
-      "../web/dist/**/*",
-      "../backend/dist/**/*",
-      "../backend/package.json",
-      "../backend/node_modules/**/*",
-      "../shared/**/*"
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "../web/dist",  "to": "web/dist",  "filter": ["**/*"] },
+      { "from": "../backend/dist",  "to": "backend/dist",  "filter": ["**/*"] },
+      { "from": "../backend/node_modules", "to": "backend/node_modules", "filter": ["**/*"] },
+      { "from": "../shared", "to": "shared", "filter": ["**/*"] }
     ],
     "directories": { "output": "release" },
     "mac": { "target": "dmg" },
