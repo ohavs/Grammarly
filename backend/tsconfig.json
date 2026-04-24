@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "..",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@writeright/shared": ["../shared/src/index.ts"]
+    }
+  },
+  "include": ["src", "../shared/src"]
+}
