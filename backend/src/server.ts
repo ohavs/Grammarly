@@ -6,13 +6,17 @@ import { healthRoutes } from "./routes/health.js";
 import { checkRoutes } from "./routes/check.js";
 import { statsRoutes } from "./routes/stats.js";
 import { toneRoutes } from "./routes/tone.js";
+import { authRoutes } from "./routes/auth.js";
+import { authPlugin } from "./plugins/auth.js";
 
 const app = Fastify({
   logger: { level: process.env.LOG_LEVEL ?? "info" },
 });
 
 await app.register(cors, { origin: true, credentials: true });
+await app.register(authPlugin);
 await app.register(healthRoutes, { prefix: "/api" });
+await app.register(authRoutes, { prefix: "/api" });
 await app.register(checkRoutes, { prefix: "/api" });
 await app.register(statsRoutes, { prefix: "/api" });
 await app.register(toneRoutes, { prefix: "/api" });
