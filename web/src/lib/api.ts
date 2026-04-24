@@ -117,4 +117,9 @@ export const api = {
       `/dictionary/${encodeURIComponent(word)}`,
       { method: "DELETE" },
     ),
+
+  synonyms: (word: string) =>
+    request<{ word: string; synonyms: string[] }>(
+      `/synonyms/${encodeURIComponent(word)}`,
+    ),
 };

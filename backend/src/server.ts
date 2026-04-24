@@ -9,6 +9,7 @@ import { toneRoutes } from "./routes/tone.js";
 import { authRoutes } from "./routes/auth.js";
 import { documentRoutes } from "./routes/documents.js";
 import { settingsRoutes } from "./routes/settings.js";
+import { synonymRoutes } from "./routes/synonyms.js";
 import { authPlugin } from "./plugins/auth.js";
 
 const app = Fastify({
@@ -21,6 +22,7 @@ await app.register(healthRoutes, { prefix: "/api" });
 await app.register(authRoutes, { prefix: "/api" });
 await app.register(documentRoutes, { prefix: "/api" });
 await app.register(settingsRoutes, { prefix: "/api" });
+await app.register(synonymRoutes, { prefix: "/api" });
 await app.register(checkRoutes, { prefix: "/api" });
 await app.register(statsRoutes, { prefix: "/api" });
 await app.register(toneRoutes, { prefix: "/api" });

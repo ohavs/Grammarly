@@ -13,6 +13,13 @@ interface Props {
   onChange: (value: string) => void;
   issues: Issue[];
   onIssueClick?: (issue: Issue) => void;
+  onWordDoubleClick?: (detail: {
+    word: string;
+    start: number;
+    end: number;
+    x: number;
+    y: number;
+  }) => void;
   placeholder?: string;
 }
 
@@ -53,6 +60,7 @@ export function HighlightEditor({
   onChange,
   issues,
   onIssueClick,
+  onWordDoubleClick,
   placeholder,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -69,6 +77,17 @@ export function HighlightEditor({
 
   function handleChange(e: ChangeEvent<HTMLTextAreaElement>) {
     onChange(e.target.value);
+  }
+
+  function handleDoubleClick(e: React.MouseEvent<HTMLTextAreaElement>) {
+    if (!onWordDoubleClick) return;
+    const ta = e.currentTarget;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    if (start === end) return;
+    const word = value.slice(start, end).replace(/[^\p{L}']/gu, "");
+    if (!word) return;
+    onWordDoubleClick({ word, start, end, x: e.clientX, y: e.clientY });
   }
 
   useLayoutEffect(() => {
@@ -120,6 +139,7 @@ export function HighlightEditor({
         value={value}
         onChange={handleChange}
         onScroll={syncScroll}
+        onDoubleClick={handleDoubleClick}
         spellCheck={false}
         placeholder={placeholder}
         className="absolute inset-0 h-full w-full resize-none overflow-auto bg-transparent px-4 py-4 font-serif text-lg leading-relaxed text-transparent caret-slate-900 outline-none placeholder:text-slate-400"

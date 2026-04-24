@@ -4,6 +4,7 @@ import type { Document, Issue } from "@writeright/shared";
 import { api } from "../lib/api";
 import { HighlightEditor } from "../components/HighlightEditor";
 import { SuggestionsSidebar } from "../components/SuggestionsSidebar";
+import { SynonymPopover } from "../components/SynonymPopover";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 interface Stats {
@@ -33,6 +34,13 @@ export function EditorPage() {
   const [tone, setTone] = useState<Tone | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [synonym, setSynonym] = useState<{
+    word: string;
+    start: number;
+    end: number;
+    x: number;
+    y: number;
+  } | null>(null);
 
   const debouncedContent = useDebouncedValue(content, 700);
   const debouncedTitle = useDebouncedValue(title, 700);
@@ -169,8 +177,23 @@ export function EditorPage() {
             onChange={setContent}
             issues={visibleIssues}
             onIssueClick={(issue) => setActiveId(issue.id)}
+            onWordDoubleClick={(d) => setSynonym(d)}
             placeholder="Start writing…"
           />
+          {synonym && (
+            <SynonymPopover
+              word={synonym.word}
+              x={synonym.x}
+              y={synonym.y}
+              onClose={() => setSynonym(null)}
+              onPick={(replacement) => {
+                const before = content.slice(0, synonym.start);
+                const after = content.slice(synonym.end);
+                setContent(before + replacement + after);
+                setSynonym(null);
+              }}
+            />
+          )}
         </div>
         <SuggestionsSidebar
           text={content}
