@@ -2,6 +2,7 @@ import type {
   CheckResponse,
   Document,
   User,
+  UserSettings,
 } from "@writeright/shared";
 
 const API_BASE = "/api";
@@ -96,5 +97,24 @@ export const api = {
     request<{ tones: { label: string; score: number }[]; summary: string }>(
       "/tone",
       { method: "POST", body: JSON.stringify({ text }) },
+    ),
+
+  getSettings: () => request<{ settings: UserSettings }>("/settings"),
+  updateSettings: (patch: Partial<UserSettings>) =>
+    request<{ settings: UserSettings }>("/settings", {
+      method: "PUT",
+      body: JSON.stringify(patch),
+    }),
+
+  listDictionary: () => request<{ words: string[] }>("/dictionary"),
+  addWord: (word: string) =>
+    request<{ words: string[] }>("/dictionary", {
+      method: "POST",
+      body: JSON.stringify({ word }),
+    }),
+  removeWord: (word: string) =>
+    request<{ words: string[] }>(
+      `/dictionary/${encodeURIComponent(word)}`,
+      { method: "DELETE" },
     ),
 };

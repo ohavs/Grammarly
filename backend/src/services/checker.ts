@@ -19,9 +19,11 @@ import { nanoid } from "nanoid";
 import { db } from "../db.js";
 import type {
   CheckResponse,
+  Formality,
   Issue,
   IssueCategory,
   IssueSeverity,
+  UserSettings,
 } from "@writeright/shared";
 
 interface RuleMeta {
@@ -102,30 +104,41 @@ function getMeta(source?: string | null): RuleMeta {
   };
 }
 
-const processorPromise = (async () => {
-  return unified()
+function buildProcessor(personal: string[], formality: Formality) {
+  const p = unified()
     .use(retextEnglish)
     .use(retextSpell, {
       dictionary: dictionaryEn,
       max: 3,
+      personal: personal.length ? personal.join("\n") : undefined,
     } as any)
     .use(retextRepeatedWords)
     .use(retextIndefiniteArticle)
     .use(retextSentenceSpacing)
     .use(retextRedundantAcronyms)
-    .use(retextContractions, { straight: true } as any)
     .use(retextQuotes)
     .use(retextEquality)
     .use(retextPassive)
     .use(retextReadability, { age: 18 })
     .use(retextSimplify)
-    .use(retextIntensify)
-    .use(retextStringify);
-})();
+    .use(retextIntensify);
+
+  if (formality === "formal") {
+    p.use(retextContractions, { straight: true } as any);
+  }
+
+  return p.use(retextStringify);
+}
 
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24;
-function hashText(text: string, language: string): string {
-  return createHash("sha256").update(`${language}:${text}`).digest("hex");
+function hashText(
+  text: string,
+  language: string,
+  extra: string,
+): string {
+  return createHash("sha256")
+    .update(`${language}:${extra}:${text}`)
+    .digest("hex");
 }
 
 const getCache = db.prepare(
@@ -135,25 +148,40 @@ const setCache = db.prepare(
   "INSERT OR REPLACE INTO check_cache (text_hash, language, response, created_at) VALUES (?, ?, ?, ?)",
 );
 
+const DEFAULT_SETTINGS: UserSettings = {
+  language: "en-US",
+  audience: "general",
+  formality: "neutral",
+  intent: "inform",
+};
+
 export async function checkText(
   text: string,
-  language = "en-US",
+  options: { settings?: UserSettings; personal?: string[] } = {},
 ): Promise<CheckResponse> {
+  const settings = options.settings ?? DEFAULT_SETTINGS;
+  const personal = options.personal ?? [];
+
   const start = Date.now();
   if (text.trim().length === 0) {
-    return { issues: [], language, durationMs: 0 };
+    return { issues: [], language: settings.language, durationMs: 0 };
   }
 
-  const hash = hashText(text, language);
+  const extra = `${settings.formality}:${personal.join(",")}`;
+  const hash = hashText(text, settings.language, extra);
   const cached = getCache.get(hash) as
     | { response: string; created_at: number }
     | undefined;
   if (cached && Date.now() - cached.created_at < CACHE_TTL_MS) {
     const issues = JSON.parse(cached.response) as Issue[];
-    return { issues, language, durationMs: Date.now() - start };
+    return {
+      issues,
+      language: settings.language,
+      durationMs: Date.now() - start,
+    };
   }
 
-  const processor = await processorPromise;
+  const processor = buildProcessor(personal, settings.formality);
   const file = await processor.process(text);
 
   const issues: Issue[] = [];
@@ -193,7 +221,11 @@ export async function checkText(
     });
   }
 
-  setCache.run(hash, language, JSON.stringify(issues), Date.now());
+  setCache.run(hash, settings.language, JSON.stringify(issues), Date.now());
 
-  return { issues, language, durationMs: Date.now() - start };
+  return {
+    issues,
+    language: settings.language,
+    durationMs: Date.now() - start,
+  };
 }

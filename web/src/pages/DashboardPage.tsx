@@ -72,6 +72,12 @@ export function DashboardPage() {
           <h1 className="text-xl font-semibold text-brand-700">WriteRight</h1>
           <div className="flex items-center gap-4 text-sm">
             <span className="text-slate-600">{user?.name}</span>
+            <Link
+              to="/settings"
+              className="text-slate-500 hover:text-slate-900"
+            >
+              Settings
+            </Link>
             <button
               onClick={logout}
               className="text-slate-500 hover:text-slate-900"

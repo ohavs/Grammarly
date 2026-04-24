@@ -49,3 +49,14 @@ export interface User {
   name: string;
   createdAt: string;
 }
+
+export type Audience = "general" | "knowledgeable" | "expert";
+export type Formality = "informal" | "neutral" | "formal";
+export type Intent = "inform" | "describe" | "convince" | "tell-a-story";
+
+export interface UserSettings {
+  language: string;
+  audience: Audience;
+  formality: Formality;
+  intent: Intent;
+}

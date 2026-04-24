@@ -41,4 +41,13 @@ db.exec(`
     response TEXT NOT NULL,
     created_at INTEGER NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS user_settings (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    language TEXT NOT NULL DEFAULT 'en-US',
+    audience TEXT NOT NULL DEFAULT 'general',
+    formality TEXT NOT NULL DEFAULT 'neutral',
+    intent TEXT NOT NULL DEFAULT 'inform',
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
 `);

@@ -4,6 +4,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { EditorPage } from "./pages/EditorPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
         children: [
           { path: "dashboard", element: <DashboardPage /> },
           { path: "documents/:id", element: <EditorPage /> },
+          { path: "settings", element: <SettingsPage /> },
         ],
       },
     ],
