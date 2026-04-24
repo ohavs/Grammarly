@@ -17,6 +17,8 @@ coverage/
 .vite/
 release/
 data/
+shared/src/*.js
+shared/src/*.js.map
 *.db
 *.db-shm
 *.db-wal
