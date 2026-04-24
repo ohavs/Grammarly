@@ -74,7 +74,21 @@ export const api = {
       body: JSON.stringify({ text, language }),
     }),
   stats: (text: string) =>
-    request<Record<string, number | string>>("/stats", {
+    request<{
+      words: number;
+      characters: number;
+      charactersNoSpaces: number;
+      uniqueWords: number;
+      sentences: number;
+      paragraphs: number;
+      readingTimeSec: number;
+      speakingTimeSec: number;
+      avgWordLength: number;
+      avgSentenceLength: number;
+      fleschReadingEase: number;
+      fleschKincaidGrade: number;
+      readabilityLabel: string;
+    }>("/stats", {
       method: "POST",
       body: JSON.stringify({ text }),
     }),
