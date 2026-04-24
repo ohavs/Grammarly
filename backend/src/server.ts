@@ -4,6 +4,8 @@ import { config } from "./config.js";
 import { db } from "./db.js";
 import { healthRoutes } from "./routes/health.js";
 import { checkRoutes } from "./routes/check.js";
+import { statsRoutes } from "./routes/stats.js";
+import { toneRoutes } from "./routes/tone.js";
 
 const app = Fastify({
   logger: { level: process.env.LOG_LEVEL ?? "info" },
@@ -12,6 +14,8 @@ const app = Fastify({
 await app.register(cors, { origin: true, credentials: true });
 await app.register(healthRoutes, { prefix: "/api" });
 await app.register(checkRoutes, { prefix: "/api" });
+await app.register(statsRoutes, { prefix: "/api" });
+await app.register(toneRoutes, { prefix: "/api" });
 
 app.get("/", async () => ({ name: "WriteRight API", version: "0.0.1" }));
 
