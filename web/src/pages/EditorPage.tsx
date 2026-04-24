@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { Document, Issue } from "@writeright/shared";
 import { api } from "../lib/api";
 import { HighlightEditor } from "../components/HighlightEditor";
 import { SuggestionsSidebar } from "../components/SuggestionsSidebar";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 interface Stats {
   words: number;
@@ -18,6 +19,8 @@ interface Tone {
   summary: string;
 }
 
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
 export function EditorPage() {
   const { id } = useParams<{ id: string }>();
   const [doc, setDoc] = useState<Document | null>(null);
@@ -25,10 +28,17 @@ export function EditorPage() {
   const [title, setTitle] = useState("");
   const [issues, setIssues] = useState<Issue[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const [checking, setChecking] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [tone, setTone] = useState<Tone | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+
+  const debouncedContent = useDebouncedValue(content, 700);
+  const debouncedTitle = useDebouncedValue(title, 700);
+
+  const lastSaved = useRef<{ title: string; content: string } | null>(null);
+  const analysisSeq = useRef(0);
 
   useEffect(() => {
     if (!id) return;
@@ -36,38 +46,71 @@ export function EditorPage() {
       setDoc(document);
       setContent(document.content);
       setTitle(document.title);
+      lastSaved.current = {
+        title: document.title,
+        content: document.content,
+      };
     });
   }, [id]);
 
-  const runAnalysis = useCallback(async () => {
-    if (!content.trim()) {
+  useEffect(() => {
+    if (!doc) return;
+    const seq = ++analysisSeq.current;
+    if (!debouncedContent.trim()) {
       setIssues([]);
       setStats(null);
       setTone(null);
+      setAnalyzing(false);
       return;
     }
-    setChecking(true);
-    try {
-      const [checkRes, statsRes, toneRes] = await Promise.all([
-        api.check(content),
-        api.stats(content),
-        api.tone(content),
-      ]);
-      setIssues(checkRes.issues);
-      setStats(statsRes);
-      setTone(toneRes);
-    } finally {
-      setChecking(false);
+    setAnalyzing(true);
+    Promise.all([
+      api.check(debouncedContent),
+      api.stats(debouncedContent),
+      api.tone(debouncedContent),
+    ])
+      .then(([checkRes, statsRes, toneRes]) => {
+        if (seq !== analysisSeq.current) return;
+        setIssues(checkRes.issues);
+        setStats(statsRes);
+        setTone(toneRes);
+      })
+      .finally(() => {
+        if (seq === analysisSeq.current) setAnalyzing(false);
+      });
+  }, [debouncedContent, doc]);
+
+  useEffect(() => {
+    if (!doc || !id) return;
+    const prev = lastSaved.current;
+    if (
+      !prev ||
+      (prev.title === debouncedTitle && prev.content === debouncedContent)
+    ) {
+      return;
     }
-  }, [content]);
+    setSaveStatus("saving");
+    api
+      .updateDocument(id, {
+        title: debouncedTitle,
+        content: debouncedContent,
+      })
+      .then(() => {
+        lastSaved.current = {
+          title: debouncedTitle,
+          content: debouncedContent,
+        };
+        setSaveStatus("saved");
+      })
+      .catch(() => setSaveStatus("error"));
+  }, [debouncedTitle, debouncedContent, doc, id]);
 
   const visibleIssues = issues.filter((i) => !dismissed.has(i.id));
 
   function applyFix(issue: Issue, replacement: string) {
     const before = content.slice(0, issue.offset);
     const after = content.slice(issue.offset + issue.length);
-    const next = before + replacement + after;
-    setContent(next);
+    setContent(before + replacement + after);
     const delta = replacement.length - issue.length;
     setIssues((prev) =>
       prev
@@ -86,9 +129,18 @@ export function EditorPage() {
     return <div className="p-10 text-slate-500">Loading document…</div>;
   }
 
+  const statusLabel =
+    saveStatus === "saving"
+      ? "Saving…"
+      : saveStatus === "saved"
+        ? "Saved"
+        : saveStatus === "error"
+          ? "Save failed"
+          : "";
+
   return (
     <div className="flex h-screen flex-col bg-white">
-      <header className="flex items-center justify-between border-b border-slate-200 px-6 py-3">
+      <header className="flex items-center gap-4 border-b border-slate-200 px-6 py-3">
         <Link
           to="/dashboard"
           className="text-sm text-slate-500 hover:text-slate-900"
@@ -100,13 +152,15 @@ export function EditorPage() {
           onChange={(e) => setTitle(e.target.value)}
           className="flex-1 px-4 text-center text-sm font-medium outline-none"
         />
-        <button
-          onClick={runAnalysis}
-          disabled={checking}
-          className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
-        >
-          {checking ? "Analyzing…" : "Analyze"}
-        </button>
+        <div className="flex min-w-[120px] items-center justify-end gap-2 text-xs text-slate-500">
+          {analyzing && (
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-brand-500" />
+              Analyzing
+            </span>
+          )}
+          {statusLabel && <span>{statusLabel}</span>}
+        </div>
       </header>
       <div className="flex flex-1 overflow-hidden">
         <div className="mx-auto w-full max-w-3xl flex-1 px-2 py-4">
