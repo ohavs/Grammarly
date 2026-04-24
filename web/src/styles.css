@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}
+
+.underline-correctness {
+  text-decoration: underline wavy #dc2626;
+  text-underline-offset: 3px;
+}
+.underline-clarity {
+  text-decoration: underline wavy #2563eb;
+  text-underline-offset: 3px;
+}
+.underline-engagement {
+  text-decoration: underline wavy #7c3aed;
+  text-underline-offset: 3px;
+}
+.underline-delivery {
+  text-decoration: underline wavy #0891b2;
+  text-underline-offset: 3px;
+}
