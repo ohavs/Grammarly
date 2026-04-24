@@ -3,17 +3,15 @@
   "version": "0.0.1",
   "private": true,
   "workspaces": [
-    "backend",
     "web",
     "desktop",
     "shared"
   ],
   "scripts": {
-    "dev": "npm run dev --workspaces --if-present",
-    "dev:backend": "npm run dev -w backend",
-    "dev:web": "npm run dev -w web",
-    "build": "npm run build --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
+    "dev": "npm run dev -w @writeright/desktop",
+    "dev:web": "npm run dev -w @writeright/web",
+    "build": "npm run build -w @writeright/desktop",
+    "dist": "npm run dist -w @writeright/desktop",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "devDependencies": {

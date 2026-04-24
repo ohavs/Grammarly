@@ -1,106 +1,53 @@
 # WriteRight
 
-Real-time writing assistant: grammar, spelling, style, clarity, and tone
-suggestions. Built as a monorepo with a shared backend powering a web app,
-a desktop app (Electron), a browser extension, and a mobile app.
-
-## Status
-
-- Web + Desktop: complete (see `web/` and `desktop/`)
-- Browser extension: next
-- Mobile app: planned
+Offline writing assistant — grammar, spelling, style, clarity and tone
+suggestions. Runs entirely inside Electron with no backend, no accounts,
+no internet required.
 
 ## Structure
 
 ```
-backend/   Fastify + SQLite + retext grammar engine
-web/       React + Vite + Tailwind client
-desktop/   Electron wrapper that spawns the backend locally
-shared/    TypeScript types shared between backend and clients
+web/       React + Vite app — includes the grammar engine (retext) + IndexedDB storage
+desktop/   Electron wrapper that loads the web build
+shared/    TypeScript types shared between the two
 ```
 
-## Prerequisites
-
-- Node.js 22+
-- npm 10+
-
-## Getting started
+## Run in development
 
 ```bash
 npm install
+npm run dev
 ```
 
-### Run the backend (port 4000)
+This starts the Vite dev server + TypeScript watcher + Electron window
+together. Edits to the web app hot-reload; edits to the main process
+require restarting.
+
+Prefer the browser only?
 
 ```bash
-npm run dev -w @writeright/backend
+npm run dev:web
 ```
 
-### Run the web client (port 5173, proxies /api → backend)
+Then open http://localhost:5173.
+
+## Build an installer
 
 ```bash
-npm run dev -w @writeright/web
+npm run dist
 ```
 
-Open http://localhost:5173, register a user, and start writing.
+Produces a platform-specific installer in `desktop/release/`:
 
-### Run the desktop app (dev)
+- macOS → `.dmg`
+- Windows → `.exe` (NSIS)
+- Linux → `.AppImage`
 
-Requires the backend to be running separately, or use the wrapper:
+## How it works
 
-```bash
-npm run build -w @writeright/backend
-npm run build -w @writeright/web
-npm run build:main -w @writeright/desktop
-npm start -w @writeright/desktop
-```
-
-### Build distributables
-
-```bash
-npm run dist -w @writeright/desktop
-```
-
-Outputs `.dmg` / `.exe` / `.AppImage` to `desktop/release/`.
-
-## Backend API
-
-All endpoints are prefixed with `/api`. Protected endpoints require
-`Authorization: Bearer <JWT>`.
-
-| Method | Path                   | Auth | Purpose                   |
-| ------ | ---------------------- | ---- | ------------------------- |
-| GET    | `/health`              |      | Server health             |
-| POST   | `/auth/register`       |      | Create user + token       |
-| POST   | `/auth/login`          |      | Exchange creds for token  |
-| GET    | `/auth/me`             | ✓    | Current user              |
-| POST   | `/check`               |      | Grammar/style issues      |
-| POST   | `/stats`               |      | Readability metrics       |
-| POST   | `/tone`                |      | Tone detection            |
-| GET    | `/synonyms/:word`      |      | Synonyms from thesaurus   |
-| GET    | `/documents`           | ✓    | List user documents       |
-| POST   | `/documents`           | ✓    | Create document           |
-| GET    | `/documents/:id`       | ✓    | Get document              |
-| PATCH  | `/documents/:id`       | ✓    | Update title/content      |
-| DELETE | `/documents/:id`       | ✓    | Delete document           |
-| GET    | `/settings`            | ✓    | User preferences          |
-| PUT    | `/settings`            | ✓    | Update preferences        |
-| GET    | `/dictionary`          | ✓    | Personal word list        |
-| POST   | `/dictionary`          | ✓    | Add word                  |
-| DELETE | `/dictionary/:word`    | ✓    | Remove word               |
-
-## Tests
-
-```bash
-npm test -w @writeright/backend
-```
-
-## Deploy the backend
-
-```bash
-docker build -f backend/Dockerfile -t writeright-backend .
-docker run -p 4000:4000 -v writeright-data:/data writeright-backend
-```
-
-Set `JWT_SECRET` in production. The SQLite DB lives at
-`/data/writeright.db` inside the container.
+- Grammar engine (`retext` + 12 plugins) runs in the renderer process.
+- Hunspell-style dictionary (`dictionary-en`) ships as a static asset
+  and is loaded on first check.
+- Documents, settings, and the personal dictionary live in IndexedDB,
+  scoped to the user's OS profile for the Electron app.
+- No server, no auth, no network calls beyond the loaded assets.

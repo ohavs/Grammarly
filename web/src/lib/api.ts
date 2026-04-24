@@ -1,125 +1,75 @@
 import type {
   CheckResponse,
   Document,
-  User,
   UserSettings,
 } from "@writeright/shared";
-
-const API_BASE = "/api";
-
-let authToken: string | null = localStorage.getItem("writeright_token");
-
-export function setToken(token: string | null) {
-  authToken = token;
-  if (token) localStorage.setItem("writeright_token", token);
-  else localStorage.removeItem("writeright_token");
-}
-
-export function getToken() {
-  return authToken;
-}
-
-async function request<T>(
-  path: string,
-  init: RequestInit = {},
-): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (init.body && !headers.has("content-type")) {
-    headers.set("content-type", "application/json");
-  }
-  if (authToken) headers.set("authorization", `Bearer ${authToken}`);
-
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(body || `${res.status}`);
-  }
-  return (await res.json()) as T;
-}
+import { checkText } from "./engine/checker";
+import { computeStats, type TextStats } from "./engine/stats";
+import { analyzeTone, type ToneResult } from "./engine/tone";
+import { lookupSynonyms } from "./engine/synonyms";
+import { storage } from "./storage";
 
 export const api = {
-  register: (email: string, name: string, password: string) =>
-    request<{ user: User; token: string }>("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ email, name, password }),
-    }),
-  login: (email: string, password: string) =>
-    request<{ user: User; token: string }>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }),
-  me: () => request<{ user: User }>("/auth/me"),
-
-  listDocuments: () => request<{ documents: Document[] }>("/documents"),
-  getDocument: (id: string) =>
-    request<{ document: Document }>(`/documents/${id}`),
-  createDocument: (title: string) =>
-    request<{ document: Document }>("/documents", {
-      method: "POST",
-      body: JSON.stringify({ title }),
-    }),
-  updateDocument: (
+  listDocuments: async (): Promise<{ documents: Document[] }> => ({
+    documents: await storage.listDocuments(),
+  }),
+  getDocument: async (id: string): Promise<{ document: Document }> => {
+    const document = await storage.getDocument(id);
+    if (!document) throw new Error("Document not found");
+    return { document };
+  },
+  createDocument: async (title: string): Promise<{ document: Document }> => ({
+    document: await storage.createDocument(title),
+  }),
+  updateDocument: async (
     id: string,
     patch: { title?: string; content?: string },
-  ) =>
-    request<{ document: Document }>(`/documents/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(patch),
-    }),
-  deleteDocument: (id: string) =>
-    request<{ ok: boolean }>(`/documents/${id}`, { method: "DELETE" }),
+  ): Promise<{ document: Document }> => {
+    const document = await storage.updateDocument(id, patch);
+    if (!document) throw new Error("Document not found");
+    return { document };
+  },
+  deleteDocument: async (id: string): Promise<{ ok: boolean }> => ({
+    ok: await storage.deleteDocument(id),
+  }),
 
-  check: (text: string, language = "en-US") =>
-    request<CheckResponse>("/check", {
-      method: "POST",
-      body: JSON.stringify({ text, language }),
-    }),
-  stats: (text: string) =>
-    request<{
-      words: number;
-      characters: number;
-      charactersNoSpaces: number;
-      uniqueWords: number;
-      sentences: number;
-      paragraphs: number;
-      readingTimeSec: number;
-      speakingTimeSec: number;
-      avgWordLength: number;
-      avgSentenceLength: number;
-      fleschReadingEase: number;
-      fleschKincaidGrade: number;
-      readabilityLabel: string;
-    }>("/stats", {
-      method: "POST",
-      body: JSON.stringify({ text }),
-    }),
-  tone: (text: string) =>
-    request<{ tones: { label: string; score: number }[]; summary: string }>(
-      "/tone",
-      { method: "POST", body: JSON.stringify({ text }) },
-    ),
+  check: async (text: string, language = "en-US"): Promise<CheckResponse> => {
+    const settings = await storage.getSettings();
+    const personal = await storage.listDictionary();
+    return checkText(text, {
+      language,
+      formality: settings.formality,
+      personal,
+    });
+  },
 
-  getSettings: () => request<{ settings: UserSettings }>("/settings"),
-  updateSettings: (patch: Partial<UserSettings>) =>
-    request<{ settings: UserSettings }>("/settings", {
-      method: "PUT",
-      body: JSON.stringify(patch),
-    }),
+  stats: async (text: string): Promise<TextStats> => computeStats(text),
 
-  listDictionary: () => request<{ words: string[] }>("/dictionary"),
-  addWord: (word: string) =>
-    request<{ words: string[] }>("/dictionary", {
-      method: "POST",
-      body: JSON.stringify({ word }),
-    }),
-  removeWord: (word: string) =>
-    request<{ words: string[] }>(
-      `/dictionary/${encodeURIComponent(word)}`,
-      { method: "DELETE" },
-    ),
+  tone: async (text: string): Promise<ToneResult> => analyzeTone(text),
 
-  synonyms: (word: string) =>
-    request<{ word: string; synonyms: string[] }>(
-      `/synonyms/${encodeURIComponent(word)}`,
-    ),
+  getSettings: async (): Promise<{ settings: UserSettings }> => ({
+    settings: await storage.getSettings(),
+  }),
+  updateSettings: async (
+    patch: Partial<UserSettings>,
+  ): Promise<{ settings: UserSettings }> => ({
+    settings: await storage.saveSettings(patch),
+  }),
+
+  listDictionary: async (): Promise<{ words: string[] }> => ({
+    words: await storage.listDictionary(),
+  }),
+  addWord: async (word: string): Promise<{ words: string[] }> => ({
+    words: await storage.addWord(word),
+  }),
+  removeWord: async (word: string): Promise<{ words: string[] }> => ({
+    words: await storage.removeWord(word),
+  }),
+
+  synonyms: async (
+    word: string,
+  ): Promise<{ word: string; synonyms: string[] }> => ({
+    word,
+    synonyms: lookupSynonyms(word),
+  }),
 };

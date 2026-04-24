@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import type { Document } from "@writeright/shared";
 import { api } from "../lib/api";
-import { useAuth } from "../store/auth";
 
 function formatRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso + "Z").getTime();
+  const diff = Date.now() - new Date(iso).getTime();
   const sec = Math.floor(diff / 1000);
   if (sec < 60) return "just now";
   const min = Math.floor(sec / 60);
@@ -28,7 +27,6 @@ function preview(text: string, max = 140): string {
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
   const [docs, setDocs] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -71,19 +69,12 @@ export function DashboardPage() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <h1 className="text-xl font-semibold text-brand-700">WriteRight</h1>
           <div className="flex items-center gap-4 text-sm">
-            <span className="text-slate-600">{user?.name}</span>
             <Link
               to="/settings"
               className="text-slate-500 hover:text-slate-900"
             >
               Settings
             </Link>
-            <button
-              onClick={logout}
-              className="text-slate-500 hover:text-slate-900"
-            >
-              Sign out
-            </button>
           </div>
         </div>
       </header>

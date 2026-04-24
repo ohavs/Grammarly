@@ -50,10 +50,7 @@ export function computeStats(text: string): TextStats {
 
   const paragraphs = Math.max(
     1,
-    text
-      .split(/\n{2,}/)
-      .map((p) => p.trim())
-      .filter(Boolean).length,
+    text.split(/\n{2,}/).map((p) => p.trim()).filter(Boolean).length,
   );
 
   const totalSyllables = wordTokens.reduce(
@@ -65,9 +62,7 @@ export function computeStats(text: string): TextStats {
   const avgSentenceLength = words / sentences;
 
   const fleschReadingEase = words
-    ? 206.835 -
-      1.015 * (words / sentences) -
-      84.6 * (totalSyllables / words)
+    ? 206.835 - 1.015 * (words / sentences) - 84.6 * (totalSyllables / words)
     : 0;
   const fleschKincaidGrade = words
     ? 0.39 * (words / sentences) + 11.8 * (totalSyllables / words) - 15.59

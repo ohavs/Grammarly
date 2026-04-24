@@ -1,28 +1,24 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, createHashRouter, Navigate } from "react-router-dom";
 import { RootLayout } from "./layouts/RootLayout";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { EditorPage } from "./pages/EditorPage";
 import { SettingsPage } from "./pages/SettingsPage";
-import { ProtectedRoute } from "./components/ProtectedRoute";
 
-export const router = createBrowserRouter([
+// hash router works under file:// (Electron packaged) and http (dev)
+const factory =
+  typeof window !== "undefined" && window.location.protocol === "file:"
+    ? createHashRouter
+    : createBrowserRouter;
+
+export const router = factory([
   {
     path: "/",
     element: <RootLayout />,
     children: [
       { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: "login", element: <LoginPage /> },
-      { path: "register", element: <RegisterPage /> },
-      {
-        element: <ProtectedRoute />,
-        children: [
-          { path: "dashboard", element: <DashboardPage /> },
-          { path: "documents/:id", element: <EditorPage /> },
-          { path: "settings", element: <SettingsPage /> },
-        ],
-      },
+      { path: "dashboard", element: <DashboardPage /> },
+      { path: "documents/:id", element: <EditorPage /> },
+      { path: "settings", element: <SettingsPage /> },
     ],
   },
 ]);
