@@ -1,0 +1,44 @@
+{
+  "name": "@writeright/desktop",
+  "version": "0.0.1",
+  "private": true,
+  "description": "WriteRight desktop app (Electron wrapper)",
+  "main": "dist/main.js",
+  "scripts": {
+    "build:main": "tsc -p tsconfig.json",
+    "build:web": "npm run build -w @writeright/web",
+    "build": "npm run build:web && npm run build:main",
+    "dev:main": "tsc -p tsconfig.json --watch",
+    "dev": "concurrently -k \"npm:dev:main\" \"npm run dev -w @writeright/web\" \"npm run dev -w @writeright/backend\" \"wait-on tcp:5173 && WR_DEV_URL=http://localhost:5173 electron dist/main.js\"",
+    "start": "electron dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "app.writeright.desktop",
+    "productName": "WriteRight",
+    "files": [
+      "dist/**/*",
+      "../web/dist/**/*",
+      "../backend/dist/**/*",
+      "../backend/package.json",
+      "../backend/node_modules/**/*",
+      "../shared/**/*"
+    ],
+    "directories": { "output": "release" },
+    "mac": { "target": "dmg" },
+    "win": { "target": "nsis" },
+    "linux": { "target": "AppImage" }
+  },
+  "dependencies": {
+    "@writeright/backend": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "concurrently": "^9.0.1",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.6.0",
+    "wait-on": "^8.0.1"
+  }
+}

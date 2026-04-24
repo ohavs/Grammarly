@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import fastifyJwt from "@fastify/jwt";
+import fp from "fastify-plugin";
 import { config } from "../config.js";
 
 declare module "fastify" {
@@ -15,7 +16,7 @@ declare module "@fastify/jwt" {
   }
 }
 
-export async function authPlugin(app: FastifyInstance) {
+async function plugin(app: FastifyInstance) {
   await app.register(fastifyJwt, { secret: config.jwtSecret });
 
   app.decorate(
@@ -29,3 +30,5 @@ export async function authPlugin(app: FastifyInstance) {
     },
   );
 }
+
+export const authPlugin = fp(plugin, { name: "auth" });
