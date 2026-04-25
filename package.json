@@ -5,12 +5,15 @@
   "workspaces": [
     "web",
     "desktop",
-    "shared"
+    "shared",
+    "extension"
   ],
   "scripts": {
     "dev": "npm run dev -w @writeright/desktop",
     "dev:web": "npm run dev -w @writeright/web",
+    "dev:extension": "npm run dev -w @writeright/extension",
     "build": "npm run build -w @writeright/desktop",
+    "build:extension": "npm run build -w @writeright/extension",
     "dist": "npm run dist -w @writeright/desktop",
     "typecheck": "npm run typecheck --workspaces --if-present"
   },

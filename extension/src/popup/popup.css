@@ -1,0 +1,190 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  color: #0f172a;
+  font: 13px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial,
+    sans-serif;
+  width: 320px;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-header {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.popup-title {
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.popup-title-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: #16a34a;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 11px;
+}
+
+.toggle {
+  appearance: none;
+  cursor: pointer;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  position: relative;
+  border: none;
+  transition: background 120ms ease;
+}
+
+.toggle::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 120ms ease;
+}
+
+.toggle[aria-checked="true"] {
+  background: #16a34a;
+}
+
+.toggle[aria-checked="true"]::before {
+  transform: translateX(16px);
+}
+
+.section {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.section:last-child {
+  border-bottom: none;
+}
+
+.section h3 {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.formality {
+  display: flex;
+  gap: 4px;
+}
+
+.formality button {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.formality button[data-active="true"] {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.dictionary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dictionary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.dictionary li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.dictionary li button {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.dictionary li button:hover {
+  color: #ef4444;
+}
+
+.dictionary form {
+  display: flex;
+  gap: 4px;
+}
+
+.dictionary input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+
+.dictionary input:focus {
+  border-color: #16a34a;
+}
+
+.dictionary form button {
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.footer {
+  font-size: 11px;
+  color: #94a3b8;
+  padding: 10px 16px 14px;
+  text-align: center;
+  border-top: 1px solid #f1f5f9;
+}
