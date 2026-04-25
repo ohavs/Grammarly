@@ -65,6 +65,7 @@ export function replaceRange(
   if (!range) return;
   const sel = window.getSelection();
   if (!sel) return;
+  el.focus();
   sel.removeAllRanges();
   sel.addRange(range);
   if (document.execCommand) {

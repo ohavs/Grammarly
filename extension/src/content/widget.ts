@@ -1,5 +1,6 @@
 import type { Issue } from "@writeright/shared";
 import { replaceRange, type EditableElement } from "./editable";
+import { localizeIssue, UI_HE } from "./i18n";
 
 export type WidgetState = "loading" | "clean" | "issues" | "error" | "off";
 
@@ -136,7 +137,12 @@ export class Widget {
     if (!this.panel) {
       this.panel = document.createElement("div");
       this.panel.className = "wr-panel";
-      this.panel.addEventListener("mousedown", (e) => e.stopPropagation());
+      this.panel.dir = "rtl";
+      this.panel.lang = "he";
+      this.panel.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
       this.host.appendChild(this.panel);
     }
     this.isPanelOpen = true;
@@ -186,10 +192,16 @@ export class Widget {
 
     const header = document.createElement("div");
     header.className = "wr-panel-header";
-    header.innerHTML = `<span>WriteRight — ${visible.length} issue${visible.length === 1 ? "" : "s"}</span>`;
+    const title = document.createElement("span");
+    title.textContent = UI_HE.panelTitle(visible.length);
+    header.appendChild(title);
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.textContent = "✕";
+    closeBtn.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
     closeBtn.addEventListener("click", () => this.closePanel());
     header.appendChild(closeBtn);
     this.panel.appendChild(header);
@@ -200,17 +212,17 @@ export class Widget {
     if (this.state === "loading") {
       const empty = document.createElement("div");
       empty.className = "wr-empty";
-      empty.textContent = "Analyzing…";
+      empty.textContent = UI_HE.analyzing;
       body.appendChild(empty);
     } else if (this.state === "error") {
       const empty = document.createElement("div");
       empty.className = "wr-empty";
-      empty.textContent = "Error analyzing text. See console.";
+      empty.textContent = UI_HE.error;
       body.appendChild(empty);
     } else if (visible.length === 0) {
       const empty = document.createElement("div");
       empty.className = "wr-empty";
-      empty.textContent = "No issues — looking clean!";
+      empty.textContent = UI_HE.noIssues;
       body.appendChild(empty);
     } else {
       for (const issue of visible) {
@@ -226,6 +238,8 @@ export class Widget {
     const root = document.createElement("div");
     root.className = "wr-issue";
 
+    const localized = localizeIssue(issue.ruleId);
+
     const head = document.createElement("div");
     head.className = "wr-issue-header";
     const dot = document.createElement("span");
@@ -234,30 +248,38 @@ export class Widget {
     head.appendChild(dot);
     const label = document.createElement("span");
     label.className = "wr-issue-label";
-    label.textContent = issue.shortMessage;
+    label.textContent = localized.label;
     head.appendChild(label);
     root.appendChild(head);
 
-    const msg = document.createElement("div");
-    msg.className = "wr-issue-message";
-    msg.textContent = issue.message;
-    root.appendChild(msg);
+    if (localized.explanation) {
+      const msg = document.createElement("div");
+      msg.className = "wr-issue-message";
+      msg.textContent = localized.explanation;
+      root.appendChild(msg);
+    }
 
     if (issue.context) {
       const ctx = document.createElement("div");
       ctx.className = "wr-issue-context";
+      ctx.dir = "ltr";
       ctx.textContent = issue.context;
       root.appendChild(ctx);
     }
 
     const actions = document.createElement("div");
     actions.className = "wr-issue-actions";
+    actions.dir = "ltr";
     for (const s of issue.suggestions.slice(0, 4)) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "wr-issue-action";
       btn.dataset.kind = "apply";
       btn.textContent = s.value;
+      btn.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         if (this.target) {
@@ -276,7 +298,11 @@ export class Widget {
     dismiss.type = "button";
     dismiss.className = "wr-issue-action";
     dismiss.dataset.kind = "dismiss";
-    dismiss.textContent = "Dismiss";
+    dismiss.textContent = UI_HE.dismiss;
+    dismiss.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
     dismiss.addEventListener("click", (e) => {
       e.preventDefault();
       this.dismissed.add(issue.id);
