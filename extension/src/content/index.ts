@@ -8,6 +8,12 @@ import type {
 } from "../lib/messages";
 import "./styles.css";
 
+console.log(
+  "[wr] content script loaded",
+  location.href,
+  window === window.top ? "(top)" : "(frame)",
+);
+
 const DEBOUNCE_MS = 600;
 const MIN_TEXT_LENGTH = 1;
 
