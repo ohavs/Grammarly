@@ -50,13 +50,25 @@ function getMeta(source?: string | null): RuleMeta {
   return { category: "engagement", severity: "suggestion", shortMessage: "Suggestion" };
 }
 
-let dictionaryPromise: Promise<{ aff: Uint8Array; dic: Uint8Array }> | null = null;
+let dictionaryPromise: Promise<{ aff: string; dic: string }> | null = null;
 async function loadDictionary() {
   if (!dictionaryPromise) {
     dictionaryPromise = Promise.all([
-      fetch(affUrl).then((r) => r.arrayBuffer()),
-      fetch(dicUrl).then((r) => r.arrayBuffer()),
-    ]).then(([aff, dic]) => ({ aff: new Uint8Array(aff), dic: new Uint8Array(dic) }));
+      fetch(affUrl).then((r) => {
+        if (!r.ok) throw new Error(`Failed to load ${affUrl}: ${r.status}`);
+        return r.text();
+      }),
+      fetch(dicUrl).then((r) => {
+        if (!r.ok) throw new Error(`Failed to load ${dicUrl}: ${r.status}`);
+        return r.text();
+      }),
+    ])
+      .then(([aff, dic]) => ({ aff, dic }))
+      .catch((err) => {
+        dictionaryPromise = null;
+        console.error("[checker] dictionary load failed", err);
+        throw err;
+      });
   }
   return dictionaryPromise;
 }
@@ -123,7 +135,21 @@ export async function checkText(
     { personalKey: personal.join(","), formality },
     personal,
   );
-  const file = await processor.process(text);
+  let file: any;
+  try {
+    file = await processor.process(text);
+  } catch (err) {
+    console.error("[checker] processor.process failed", err);
+    throw err;
+  }
+  if (file.messages.length === 0) {
+    console.debug("[checker] no issues found", {
+      length: text.length,
+      sample: text.slice(0, 60),
+    });
+  } else {
+    console.debug("[checker] found", file.messages.length, "issues");
+  }
 
   const issues: Issue[] = [];
   for (const m of file.messages) {
