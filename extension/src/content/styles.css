@@ -1,7 +1,12 @@
 .wr-host {
-  position: absolute;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
   z-index: 2147483646;
   pointer-events: none;
+  overflow: visible;
 }
 
 .wr-host * {

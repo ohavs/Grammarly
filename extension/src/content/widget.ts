@@ -115,8 +115,8 @@ export class Widget {
       this.host.style.display = "none";
       return;
     }
-    const top = rect.bottom + window.scrollY - 28;
-    const left = rect.right + window.scrollX - 36;
+    const top = rect.bottom - 28;
+    const left = rect.right - 36;
     this.button.style.top = `${top}px`;
     this.button.style.left = `${left}px`;
     if (this.panel && this.isPanelOpen) {
@@ -168,12 +168,12 @@ export class Widget {
     const panelWidth = this.panel.offsetWidth || 320;
     const viewportH = window.innerHeight;
 
-    let top = rect.bottom + window.scrollY + 6;
+    let top = rect.bottom + 6;
     if (rect.bottom + panelHeight > viewportH && rect.top > panelHeight) {
-      top = rect.top + window.scrollY - panelHeight - 6;
+      top = rect.top - panelHeight - 6;
     }
-    let left = rect.right + window.scrollX - panelWidth;
-    if (left < window.scrollX + 8) left = window.scrollX + 8;
+    let left = rect.right - panelWidth;
+    if (left < 8) left = 8;
 
     this.panel.style.top = `${top}px`;
     this.panel.style.left = `${left}px`;
