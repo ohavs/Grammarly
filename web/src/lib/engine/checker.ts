@@ -81,12 +81,19 @@ interface ProcessorKey {
 const processorCache = new Map<string, Promise<any>>();
 
 function buildProcessor(personal: string[], formality: Formality) {
-  const dictionaryFn = async () => loadDictionary();
+  const dictionaryCallback = (
+    cb: (err: Error | null, dict?: { aff: string; dic: string }) => void,
+  ) => {
+    loadDictionary().then(
+      (dict) => cb(null, dict),
+      (err) => cb(err instanceof Error ? err : new Error(String(err))),
+    );
+  };
 
   const p = unified()
     .use(retextEnglish)
     .use(retextSpell, {
-      dictionary: dictionaryFn,
+      dictionary: dictionaryCallback,
       max: 3,
       personal: personal.length ? personal.join("\n") : undefined,
     } as any)
