@@ -94,8 +94,13 @@ function triggerAnalysis(immediate = false) {
 function onFocusIn(e: FocusEvent) {
   if (!enabled) return;
   const t = e.target;
-  if (!isEditable(t)) return;
-  if (t.closest("[data-wr]")) return;
+  console.log("[wr] focusin", (t as Element)?.tagName, (t as Element)?.className?.slice?.(0, 60));
+  if (!isEditable(t)) {
+    console.log("[wr] not editable, skipping");
+    return;
+  }
+  if ((t as Element).closest?.("[data-wr]")) return;
+  console.log("[wr] attaching to", (t as Element).tagName);
   activeTarget = t;
   ensureWidget().attach(t);
   triggerAnalysis(true);
@@ -139,4 +144,31 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
+// Catch already-focused element (script loaded after user focused a field)
+function checkAlreadyFocused() {
+  const el = document.activeElement;
+  if (el && isEditable(el)) {
+    console.log("[wr] already-focused editable on load", el.tagName);
+    activeTarget = el;
+    ensureWidget().attach(el);
+    triggerAnalysis(true);
+  }
+}
+
+// Watch for editable elements added dynamically (e.g. Gmail compose)
+const observer = new MutationObserver(() => {
+  const el = document.activeElement;
+  if (el && isEditable(el) && el !== activeTarget) {
+    console.log("[wr] mutation: new active editable", el.tagName);
+    activeTarget = el;
+    ensureWidget().attach(el);
+    triggerAnalysis(true);
+  }
+});
+observer.observe(document.body ?? document.documentElement, {
+  childList: true,
+  subtree: true,
+});
+
 loadSettings();
+checkAlreadyFocused();
