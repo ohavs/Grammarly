@@ -1,7 +1,6 @@
 import type { Issue } from "@writeright/shared";
 import { replaceRange, type EditableElement } from "./editable";
 import { localizeIssue, UI_HE } from "./i18n";
-import STYLES from "./styles.css?inline";
 
 export type WidgetState = "loading" | "clean" | "issues" | "error" | "off";
 
@@ -12,7 +11,6 @@ interface WidgetCallbacks {
 
 export class Widget {
   private host: HTMLDivElement;
-  private shadow: ShadowRoot;
   private button: HTMLButtonElement;
   private panel: HTMLDivElement | null = null;
   private state: WidgetState = "loading";
@@ -25,26 +23,40 @@ export class Widget {
 
   constructor(cb: WidgetCallbacks) {
     this.cb = cb;
-
-    // Zero-size fixed anchor in the light DOM — never hidden by page CSS
     this.host = document.createElement("div");
     this.host.setAttribute("data-wr", "true");
     this.host.style.cssText =
-      "position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;z-index:2147483646;";
-
-    // Shadow root completely isolates our CSS from the page
-    this.shadow = this.host.attachShadow({ mode: "open" });
-    const styleEl = document.createElement("style");
-    styleEl.textContent = STYLES;
-    this.shadow.appendChild(styleEl);
+      "all:initial!important;position:fixed!important;top:0!important;left:0!important;width:0!important;height:0!important;pointer-events:none!important;z-index:2147483646!important;overflow:visible!important;";
 
     this.button = document.createElement("button");
-    this.button.className = "wr-button";
+    this.button.setAttribute("data-wr-btn", "true");
     this.button.type = "button";
     this.button.dataset.state = "loading";
     this.button.innerHTML =
-      '<span class="wr-mark">WR</span><span class="wr-count" hidden></span>';
-    this.button.style.display = "none";
+      '<span style="font-weight:800">WR</span><span data-wr-count style="margin-left:4px;font-weight:700" hidden></span>';
+
+    // All button styles inline so page CSS cannot override them
+    this.button.style.cssText = [
+      "all:initial!important",
+      "position:fixed!important",
+      "display:none!important",
+      "align-items:center!important",
+      "justify-content:center!important",
+      "height:24px!important",
+      "min-width:24px!important",
+      "padding:0 6px!important",
+      "border-radius:12px!important",
+      "background:#64748b!important",
+      "color:#fff!important",
+      "font:600 11px/24px system-ui,sans-serif!important",
+      "cursor:pointer!important",
+      "border:none!important",
+      "box-shadow:0 2px 8px rgba(0,0,0,.25)!important",
+      "user-select:none!important",
+      "z-index:2147483647!important",
+      "box-sizing:border-box!important",
+    ].join(";");
+
     this.button.addEventListener("mousedown", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -54,8 +66,7 @@ export class Widget {
       e.stopPropagation();
       this.togglePanel();
     });
-    this.shadow.appendChild(this.button);
-
+    this.host.appendChild(this.button);
     document.documentElement.appendChild(this.host);
 
     window.addEventListener("scroll", this.scheduleReposition, true);
@@ -65,19 +76,31 @@ export class Widget {
   attach(target: EditableElement) {
     if (this.target === target) return;
     this.target = target;
-    this.button.style.display = "";
+    this.button.style.setProperty("display", "inline-flex", "important");
     this.reposition();
   }
 
   detach() {
     this.target = null;
-    this.button.style.display = "none";
+    this.button.style.setProperty("display", "none", "important");
     this.closePanel();
   }
 
   setState(state: WidgetState) {
     this.state = state;
     this.button.dataset.state = state;
+    const colors: Record<string, string> = {
+      loading: "#64748b",
+      clean: "#16a34a",
+      issues: "#ef4444",
+      error: "#dc2626",
+      off: "#94a3b8",
+    };
+    this.button.style.setProperty(
+      "background",
+      colors[state] ?? "#64748b",
+      "important",
+    );
     this.updateCount();
   }
 
@@ -103,12 +126,12 @@ export class Widget {
 
   private updateCount() {
     const count = this.visibleIssues().length;
-    const span = this.button.querySelector(".wr-count") as HTMLSpanElement;
+    const span = this.button.querySelector("[data-wr-count]") as HTMLSpanElement;
     if (count > 0 && this.state === "issues") {
       span.textContent = String(count);
-      span.hidden = false;
+      span.removeAttribute("hidden");
     } else {
-      span.hidden = true;
+      span.setAttribute("hidden", "");
     }
   }
 
@@ -124,14 +147,14 @@ export class Widget {
     if (!this.target) return;
     const rect = this.target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) {
-      this.button.style.display = "none";
+      this.button.style.setProperty("display", "none", "important");
       return;
     }
-    this.button.style.display = "";
+    this.button.style.setProperty("display", "inline-flex", "important");
     const top = rect.bottom - 28;
     const left = rect.right - 36;
-    this.button.style.top = `${top}px`;
-    this.button.style.left = `${left}px`;
+    this.button.style.setProperty("top", `${top}px`, "important");
+    this.button.style.setProperty("left", `${left}px`, "important");
     if (this.panel && this.isPanelOpen) {
       this.positionPanel();
     }
@@ -155,7 +178,7 @@ export class Widget {
         e.preventDefault();
         e.stopPropagation();
       });
-      this.shadow.appendChild(this.panel);
+      this.host.appendChild(this.panel);
     }
     this.isPanelOpen = true;
     this.renderPanel();
@@ -174,8 +197,8 @@ export class Widget {
 
   private onOutsideMouseDown = (e: MouseEvent) => {
     if (!this.panel) return;
-    // composedPath() pierces shadow boundaries — if host is in the path, click was inside our widget
-    if (e.composedPath().includes(this.host)) return;
+    const t = e.target as Node;
+    if (this.host.contains(t)) return;
     this.closePanel();
   };
 

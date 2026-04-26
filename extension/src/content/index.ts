@@ -6,6 +6,7 @@ import type {
   CheckErrorResponse,
   SettingsResponse,
 } from "../lib/messages";
+import "./styles.css";
 
 console.log(
   "[wr] content script loaded",
