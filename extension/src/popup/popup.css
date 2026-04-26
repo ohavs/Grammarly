@@ -181,6 +181,47 @@ body {
   cursor: pointer;
 }
 
+.apikey-form {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.apikey-form input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+}
+
+.apikey-form input:focus {
+  border-color: #16a34a;
+}
+
+.apikey-form button {
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.apikey-help {
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.apikey-help a {
+  color: #16a34a;
+}
+
 .footer {
   font-size: 11px;
   color: #94a3b8;

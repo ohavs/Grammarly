@@ -344,7 +344,8 @@ export class Widget {
 
       const errOff = issue.contextErrorOffset ?? -1;
       const errLen = issue.contextErrorLength ?? issue.length;
-      if (errOff >= 0 && errOff < issue.context.length) {
+      const isFullTextCorrection = errOff === 0 && errLen >= issue.context.length;
+      if (errOff >= 0 && errOff < issue.context.length && !isFullTextCorrection) {
         const before = document.createElement("span");
         before.textContent = issue.context.slice(0, errOff);
         const err = document.createElement("span");
@@ -388,7 +389,9 @@ export class Widget {
     const actions = document.createElement("div");
     actions.className = "wr-issue-actions";
     actions.dir = "ltr";
-    for (const s of issue.suggestions.slice(0, 4)) {
+    const skipButtons = issue.ruleId === "gemini-correction";
+    const buttonSuggestions = skipButtons ? [] : issue.suggestions.slice(0, 4);
+    for (const s of buttonSuggestions) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "wr-issue-action";

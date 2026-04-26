@@ -33,6 +33,7 @@ async function handle(req: Request): Promise<Response> {
       const result = await checkText(req.text, {
         formality: req.formality ?? settings.formality,
         personal: settings.personalDictionary,
+        geminiApiKey: settings.geminiApiKey,
       });
       return { type: "check-result", ...result };
     }
@@ -43,6 +44,7 @@ async function handle(req: Request): Promise<Response> {
         enabled: s.enabled,
         formality: s.formality,
         personalDictionary: s.personalDictionary,
+        geminiApiKey: s.geminiApiKey,
       };
     }
     case "update-settings": {

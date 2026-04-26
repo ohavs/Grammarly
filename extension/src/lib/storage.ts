@@ -4,12 +4,14 @@ export interface ExtensionSettings {
   enabled: boolean;
   formality: Formality;
   personalDictionary: string[];
+  geminiApiKey: string;
 }
 
 const DEFAULTS: ExtensionSettings = {
   enabled: true,
   formality: "neutral",
   personalDictionary: [],
+  geminiApiKey: "",
 };
 
 const KEY = "wr_settings";

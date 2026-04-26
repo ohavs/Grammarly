@@ -8,7 +8,10 @@
     "default_title": "WriteRight"
   },
   "permissions": ["storage"],
-  "host_permissions": ["https://api.languagetool.org/*"],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.languagetool.org/*"
+  ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

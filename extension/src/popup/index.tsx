@@ -12,6 +12,8 @@ function Popup() {
   const [formality, setFormality] = useState<Formality>("neutral");
   const [dictionary, setDictionary] = useState<string[]>([]);
   const [newWord, setNewWord] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [apiKeySaved, setApiKeySaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -20,6 +22,7 @@ function Popup() {
         setEnabled(res.enabled);
         setFormality(res.formality);
         setDictionary(res.personalDictionary);
+        setApiKey(res.geminiApiKey ?? "");
         setLoaded(true);
       })
       .catch((err) => {
@@ -27,6 +30,16 @@ function Popup() {
         setLoaded(true);
       });
   }, []);
+
+  async function saveApiKey(e: Event) {
+    e.preventDefault();
+    await sendMessage({
+      type: "update-settings",
+      patch: { geminiApiKey: apiKey.trim() },
+    });
+    setApiKeySaved(true);
+    setTimeout(() => setApiKeySaved(false), 1500);
+  }
 
   async function toggleEnabled() {
     const next = !enabled;
@@ -95,6 +108,30 @@ function Popup() {
       </div>
 
       <div className="section">
+        <h3>AI grammar (Gemini)</h3>
+        <form onSubmit={saveApiKey} className="apikey-form">
+          <input
+            type="password"
+            value={apiKey}
+            onInput={(e) => setApiKey((e.target as HTMLInputElement).value)}
+            placeholder="Paste Gemini API key…"
+          />
+          <button type="submit">{apiKeySaved ? "Saved ✓" : "Save"}</button>
+        </form>
+        <div className="apikey-help">
+          Free key:{" "}
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            aistudio.google.com/app/apikey
+          </a>
+          . Stored locally only. Without a key, falls back to LanguageTool.
+        </div>
+      </div>
+
+      <div className="section">
         <h3>Personal dictionary</h3>
         <div className="dictionary">
           <ul>
@@ -128,7 +165,9 @@ function Popup() {
       </div>
 
       <div className="footer">
-        WriteRight runs locally — no data leaves your browser.
+        {apiKey
+          ? "Text is sent to Gemini for AI grammar checking."
+          : "WriteRight runs locally. Add a Gemini key for full AI corrections."}
       </div>
     </div>
   );

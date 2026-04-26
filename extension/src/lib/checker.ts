@@ -21,6 +21,69 @@ import type {
   IssueSeverity,
 } from "@writeright/shared";
 
+// ── Gemini (preferred — full-sentence corrections) ───────────────────────────
+
+const GEMINI_MODEL = "gemini-2.5-flash";
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+const GEMINI_PROMPT = `You are a strict English grammar and spelling corrector.
+Fix grammar, spelling, punctuation, capitalization, and verb-form errors in the text below.
+- Do NOT rewrite for style.
+- Do NOT add or remove information.
+- Do NOT add explanations, quotes, code fences, or any extra text.
+- Preserve the user's original wording wherever it is already correct.
+- If the text has no errors, output it exactly as-is.
+
+Output ONLY the corrected text.
+
+Text:
+`;
+
+async function checkWithGemini(text: string, apiKey: string): Promise<Issue[]> {
+  const res = await fetch(`${GEMINI_URL}?key=${encodeURIComponent(apiKey)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: GEMINI_PROMPT + text }] }],
+      generationConfig: {
+        temperature: 0.1,
+        maxOutputTokens: Math.min(4000, text.length * 4 + 200),
+      },
+    }),
+    signal: AbortSignal.timeout(15000),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Gemini ${res.status}: ${body.slice(0, 200)}`);
+  }
+
+  const data: any = await res.json();
+  const corrected: string =
+    data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+
+  if (!corrected || corrected === text.trim()) {
+    return [];
+  }
+
+  return [
+    {
+      id: nanoid(10),
+      category: "correctness",
+      severity: "error",
+      ruleId: "gemini-correction",
+      shortMessage: "AI correction",
+      message: "AI-suggested correction for the entire text",
+      offset: 0,
+      length: text.length,
+      suggestions: [{ value: corrected }],
+      context: text,
+      contextErrorOffset: 0,
+      contextErrorLength: text.length,
+    },
+  ];
+}
+
 // ── LanguageTool ─────────────────────────────────────────────────────────────
 
 interface LTMatch {
@@ -237,15 +300,28 @@ async function checkWithRetext(
 
 export async function checkText(
   text: string,
-  options: { formality?: Formality; personal?: string[] } = {},
+  options: { formality?: Formality; personal?: string[]; geminiApiKey?: string } = {},
 ): Promise<{ issues: Issue[]; durationMs: number }> {
   const formality = options.formality ?? "neutral";
   const personal = options.personal ?? [];
+  const apiKey = options.geminiApiKey?.trim() ?? "";
   const start = typeof performance !== "undefined" ? performance.now() : Date.now();
 
   if (text.trim().length === 0) return { issues: [], durationMs: 0 };
 
   let issues: Issue[];
+
+  if (apiKey) {
+    try {
+      issues = await checkWithGemini(text, apiKey);
+      console.log("[wr-bg] Gemini found", issues.length, "issues");
+      const end = typeof performance !== "undefined" ? performance.now() : Date.now();
+      return { issues, durationMs: end - start };
+    } catch (err) {
+      console.warn("[wr-bg] Gemini failed, falling back to LanguageTool:", err);
+    }
+  }
+
   try {
     issues = await checkWithLanguageTool(text);
     console.log("[wr-bg] LanguageTool found", issues.length, "issues");

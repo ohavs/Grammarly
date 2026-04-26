@@ -27,6 +27,7 @@ export interface SettingsResponse {
   enabled: boolean;
   formality: Formality;
   personalDictionary: string[];
+  geminiApiKey: string;
 }
 
 export interface UpdateSettingsRequest {
@@ -34,6 +35,7 @@ export interface UpdateSettingsRequest {
   patch: Partial<{
     enabled: boolean;
     formality: Formality;
+    geminiApiKey: string;
   }>;
 }
 
