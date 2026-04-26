@@ -70,10 +70,32 @@ export const UI_HE = {
   dismiss: "התעלם",
 };
 
+const LT_CATEGORY_HE: Record<string, string> = {
+  GRAMMAR:        "שגיאה דקדוקית",
+  TYPOS:          "שגיאת כתיב",
+  CONFUSED_WORDS: "מילה מבולבלת",
+  CASING:         "אותיות גדולות",
+  PUNCTUATION:    "פיסוק",
+  COMPOUNDING:    "כתיב מורכב",
+  TYPOGRAPHY:     "עיצוב טקסט",
+  STYLE:          "סגנון",
+  REDUNDANCY:     "מיותר",
+  CLARITY:        "בהירות",
+  PLAIN_ENGLISH:  "פשטות",
+  COLLOQUIALISMS: "סלנג",
+};
+
 export function localizeIssue(source: string | null | undefined): {
   label: string;
   explanation: string;
 } {
-  if (source && RULE_HE[source]) return RULE_HE[source];
+  if (!source) return { label: "הצעה", explanation: "" };
+  if (RULE_HE[source]) return RULE_HE[source];
+  if (source.startsWith("lt-")) {
+    const parts = source.slice(3).split("_");
+    const catKey = parts[0] ?? "";
+    const label = LT_CATEGORY_HE[catKey] ?? "הצעה";
+    return { label, explanation: "" };
+  }
   return { label: "הצעה", explanation: "" };
 }

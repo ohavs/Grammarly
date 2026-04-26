@@ -168,11 +168,35 @@
   font-size: 11px;
   color: #64748b;
   font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   background: #f8fafc;
   padding: 4px 6px;
   border-radius: 4px;
   word-break: break-word;
+}
+
+.wr-ctx-error {
+  color: #dc2626;
+  text-decoration: underline wavy #dc2626;
+  font-weight: 600;
+}
+
+.wr-issue-corrected {
+  font-size: 11px;
+  color: #16a34a;
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  margin-bottom: 8px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 4px 6px;
+  border-radius: 4px;
+  word-break: break-word;
+  cursor: pointer;
+}
+
+.wr-issue-corrected:hover {
+  background: #dcfce7;
+  border-color: #16a34a;
 }
 
 .wr-issue-actions {

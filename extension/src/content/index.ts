@@ -80,6 +80,10 @@ function triggerAnalysis(immediate = false) {
       })
       .catch((err) => {
         if (seq !== analysisSeq) return;
+        const msg = String(err?.message ?? err);
+        if (msg.includes("Extension context invalidated") || msg.includes("context invalidated")) {
+          return;
+        }
         console.warn("[wr] check failed", err);
         ensureWidget().setState("error");
       });

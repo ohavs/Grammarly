@@ -341,8 +341,48 @@ export class Widget {
       const ctx = document.createElement("div");
       ctx.className = "wr-issue-context";
       ctx.dir = "ltr";
-      ctx.textContent = issue.context;
+
+      const errOff = issue.contextErrorOffset ?? -1;
+      const errLen = issue.contextErrorLength ?? issue.length;
+      if (errOff >= 0 && errOff < issue.context.length) {
+        const before = document.createElement("span");
+        before.textContent = issue.context.slice(0, errOff);
+        const err = document.createElement("span");
+        err.className = "wr-ctx-error";
+        err.textContent = issue.context.slice(errOff, errOff + errLen);
+        const after = document.createElement("span");
+        after.textContent = issue.context.slice(errOff + errLen);
+        ctx.appendChild(before);
+        ctx.appendChild(err);
+        ctx.appendChild(after);
+      } else {
+        ctx.textContent = issue.context;
+      }
       root.appendChild(ctx);
+
+      const firstSuggestion = issue.suggestions[0];
+      if (firstSuggestion && errOff >= 0) {
+        const corrected = document.createElement("div");
+        corrected.className = "wr-issue-corrected";
+        corrected.dir = "ltr";
+        corrected.title = "לחץ להחלפה";
+        corrected.textContent =
+          issue.context.slice(0, errOff) +
+          firstSuggestion.value +
+          issue.context.slice(errOff + errLen);
+        corrected.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        });
+        corrected.addEventListener("click", (e) => {
+          e.preventDefault();
+          if (this.target) {
+            replaceRange(this.target, issue.offset, issue.offset + issue.length, firstSuggestion.value);
+          }
+          this.cb.onApply(issue, firstSuggestion.value);
+        });
+        root.appendChild(corrected);
+      }
     }
 
     const actions = document.createElement("div");

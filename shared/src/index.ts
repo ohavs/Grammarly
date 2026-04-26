@@ -21,6 +21,8 @@ export interface Issue {
   length: number;
   suggestions: Suggestion[];
   context?: string;
+  contextErrorOffset?: number;
+  contextErrorLength?: number;
 }
 
 export interface CheckRequest {
