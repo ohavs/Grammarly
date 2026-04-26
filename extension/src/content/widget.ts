@@ -118,25 +118,15 @@ export class Widget {
     }
 
     const badgeHeight = 24;
+    const badgeWidth = 36;
     const gap = 4;
-    const viewportH = window.innerHeight;
-    const viewportW = window.innerWidth;
-    const spaceBelow = viewportH - rect.bottom;
-    const spaceAbove = rect.top;
 
-    let top: number;
-    if (spaceBelow >= badgeHeight + gap) {
-      top = rect.bottom + gap;
-    } else if (spaceAbove >= badgeHeight + gap) {
-      top = rect.top - badgeHeight - gap;
-    } else {
-      top = rect.bottom - badgeHeight - gap;
-    }
+    const top = rect.bottom - badgeHeight - gap;
+    const left = rect.right - badgeWidth - gap;
 
-    const rightOffset = Math.max(4, viewportW - rect.right);
     this.button.style.top = `${top}px`;
-    this.button.style.left = "auto";
-    this.button.style.right = `${rightOffset}px`;
+    this.button.style.right = "auto";
+    this.button.style.left = `${left}px`;
 
     if (this.panel && this.isPanelOpen) {
       this.positionPanel();
