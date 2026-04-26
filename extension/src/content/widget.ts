@@ -124,6 +124,8 @@ export class Widget {
     const top = rect.bottom - badgeHeight - gap;
     const left = rect.right - badgeWidth - gap;
 
+    console.log(`[wr] reposition: rect=${JSON.stringify({top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right})} => button top=${top} left=${left} hostDisplay=${this.host.style.display}`);
+
     this.button.style.top = `${top}px`;
     this.button.style.right = "auto";
     this.button.style.left = `${left}px`;
