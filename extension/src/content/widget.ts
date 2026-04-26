@@ -9,8 +9,53 @@ interface WidgetCallbacks {
   onDismiss(issue: Issue): void;
 }
 
+const STATE_COLORS: Record<WidgetState, string> = {
+  loading: "#64748b",
+  clean: "#16a34a",
+  issues: "#ef4444",
+  error: "#dc2626",
+  off: "#94a3b8",
+};
+
+function applyButtonStyles(btn: HTMLButtonElement) {
+  const set = (k: string, v: string) => btn.style.setProperty(k, v, "important");
+  set("position", "fixed");
+  set("top", "0");
+  set("left", "0");
+  set("display", "none");
+  set("align-items", "center");
+  set("justify-content", "center");
+  set("height", "24px");
+  set("min-width", "24px");
+  set("padding", "0 6px");
+  set("margin", "0");
+  set("border", "none");
+  set("border-radius", "12px");
+  set("background", "#64748b");
+  set("color", "#ffffff");
+  set("font", "600 11px/24px system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif");
+  set("cursor", "pointer");
+  set("box-shadow", "0 2px 8px rgba(0,0,0,.25)");
+  set("user-select", "none");
+  set("z-index", "2147483647");
+  set("box-sizing", "border-box");
+  set("opacity", "1");
+  set("visibility", "visible");
+  set("pointer-events", "auto");
+  set("transform", "none");
+  set("clip", "auto");
+  set("clip-path", "none");
+  set("filter", "none");
+  set("text-indent", "0");
+  set("letter-spacing", "0.02em");
+  set("text-transform", "none");
+  set("min-height", "24px");
+  set("max-width", "none");
+  set("max-height", "none");
+  set("white-space", "nowrap");
+}
+
 export class Widget {
-  private host: HTMLDivElement;
   private button: HTMLButtonElement;
   private panel: HTMLDivElement | null = null;
   private state: WidgetState = "loading";
@@ -23,39 +68,15 @@ export class Widget {
 
   constructor(cb: WidgetCallbacks) {
     this.cb = cb;
-    this.host = document.createElement("div");
-    this.host.setAttribute("data-wr", "true");
-    this.host.style.cssText =
-      "all:initial!important;position:fixed!important;top:0!important;left:0!important;width:0!important;height:0!important;pointer-events:none!important;z-index:2147483646!important;overflow:visible!important;";
 
     this.button = document.createElement("button");
-    this.button.setAttribute("data-wr-btn", "true");
+    this.button.setAttribute("data-wr", "true");
     this.button.type = "button";
     this.button.dataset.state = "loading";
     this.button.innerHTML =
       '<span style="font-weight:800">WR</span><span data-wr-count style="margin-left:4px;font-weight:700" hidden></span>';
 
-    // All button styles inline so page CSS cannot override them
-    this.button.style.cssText = [
-      "all:initial!important",
-      "position:fixed!important",
-      "display:none!important",
-      "align-items:center!important",
-      "justify-content:center!important",
-      "height:24px!important",
-      "min-width:24px!important",
-      "padding:0 6px!important",
-      "border-radius:12px!important",
-      "background:#64748b!important",
-      "color:#fff!important",
-      "font:600 11px/24px system-ui,sans-serif!important",
-      "cursor:pointer!important",
-      "border:none!important",
-      "box-shadow:0 2px 8px rgba(0,0,0,.25)!important",
-      "user-select:none!important",
-      "z-index:2147483647!important",
-      "box-sizing:border-box!important",
-    ].join(";");
+    applyButtonStyles(this.button);
 
     this.button.addEventListener("mousedown", (e) => {
       e.preventDefault();
@@ -66,8 +87,9 @@ export class Widget {
       e.stopPropagation();
       this.togglePanel();
     });
-    this.host.appendChild(this.button);
-    document.documentElement.appendChild(this.host);
+
+    document.documentElement.appendChild(this.button);
+    console.log("[wr] widget button appended", this.button);
 
     window.addEventListener("scroll", this.scheduleReposition, true);
     window.addEventListener("resize", this.scheduleReposition);
@@ -89,18 +111,7 @@ export class Widget {
   setState(state: WidgetState) {
     this.state = state;
     this.button.dataset.state = state;
-    const colors: Record<string, string> = {
-      loading: "#64748b",
-      clean: "#16a34a",
-      issues: "#ef4444",
-      error: "#dc2626",
-      off: "#94a3b8",
-    };
-    this.button.style.setProperty(
-      "background",
-      colors[state] ?? "#64748b",
-      "important",
-    );
+    this.button.style.setProperty("background", STATE_COLORS[state], "important");
     this.updateCount();
   }
 
@@ -117,7 +128,8 @@ export class Widget {
   destroy() {
     window.removeEventListener("scroll", this.scheduleReposition, true);
     window.removeEventListener("resize", this.scheduleReposition);
-    this.host.remove();
+    this.button.remove();
+    if (this.panel) this.panel.remove();
   }
 
   private visibleIssues(): Issue[] {
@@ -155,6 +167,7 @@ export class Widget {
     const left = rect.right - 36;
     this.button.style.setProperty("top", `${top}px`, "important");
     this.button.style.setProperty("left", `${left}px`, "important");
+    console.log(`[wr] reposition top=${top} left=${left} rect=`, rect);
     if (this.panel && this.isPanelOpen) {
       this.positionPanel();
     }
@@ -171,6 +184,7 @@ export class Widget {
   private openPanel() {
     if (!this.panel) {
       this.panel = document.createElement("div");
+      this.panel.setAttribute("data-wr", "true");
       this.panel.className = "wr-panel";
       this.panel.dir = "rtl";
       this.panel.lang = "he";
@@ -178,7 +192,7 @@ export class Widget {
         e.preventDefault();
         e.stopPropagation();
       });
-      this.host.appendChild(this.panel);
+      document.documentElement.appendChild(this.panel);
     }
     this.isPanelOpen = true;
     this.renderPanel();
@@ -198,7 +212,7 @@ export class Widget {
   private onOutsideMouseDown = (e: MouseEvent) => {
     if (!this.panel) return;
     const t = e.target as Node;
-    if (this.host.contains(t)) return;
+    if (this.panel.contains(t) || this.button.contains(t)) return;
     this.closePanel();
   };
 
