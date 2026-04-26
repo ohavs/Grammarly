@@ -55,6 +55,34 @@ function applyButtonStyles(btn: HTMLButtonElement) {
   set("white-space", "nowrap");
 }
 
+function applyPanelStyles(panel: HTMLDivElement) {
+  const set = (k: string, v: string) => panel.style.setProperty(k, v, "important");
+  set("position", "fixed");
+  set("top", "0");
+  set("left", "0");
+  set("width", "320px");
+  set("max-height", "420px");
+  set("overflow", "hidden");
+  set("background", "#ffffff");
+  set("color", "#0f172a");
+  set("border", "1px solid #e2e8f0");
+  set("border-radius", "10px");
+  set("box-shadow", "0 12px 32px rgba(15,23,42,.18)");
+  set("font", "13px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif");
+  set("display", "flex");
+  set("flex-direction", "column");
+  set("z-index", "2147483647");
+  set("opacity", "1");
+  set("visibility", "visible");
+  set("pointer-events", "auto");
+  set("transform", "none");
+  set("clip", "auto");
+  set("clip-path", "none");
+  set("filter", "none");
+  set("margin", "0");
+  set("box-sizing", "border-box");
+}
+
 export class Widget {
   private button: HTMLButtonElement;
   private panel: HTMLDivElement | null = null;
@@ -188,6 +216,7 @@ export class Widget {
       this.panel.className = "wr-panel";
       this.panel.dir = "rtl";
       this.panel.lang = "he";
+      applyPanelStyles(this.panel);
       this.panel.addEventListener("mousedown", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -230,8 +259,8 @@ export class Widget {
     let left = rect.right - panelWidth;
     if (left < 8) left = 8;
 
-    this.panel.style.top = `${top}px`;
-    this.panel.style.left = `${left}px`;
+    this.panel.style.setProperty("top", `${top}px`, "important");
+    this.panel.style.setProperty("left", `${left}px`, "important");
   }
 
   private renderPanel() {
