@@ -116,18 +116,10 @@ export class Widget {
       this.host.style.display = "none";
       return;
     }
-
-    const badgeHeight = 24;
-    const badgeWidth = 36;
-    const gap = 4;
-
-    const top = rect.bottom - badgeHeight - gap;
-    const left = rect.right - badgeWidth - gap;
-
+    const top = rect.bottom - 28;
+    const left = rect.right - 36;
     this.button.style.top = `${top}px`;
-    this.button.style.right = "auto";
     this.button.style.left = `${left}px`;
-
     if (this.panel && this.isPanelOpen) {
       this.positionPanel();
     }
