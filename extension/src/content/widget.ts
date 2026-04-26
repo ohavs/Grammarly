@@ -1,5 +1,5 @@
 import type { Issue } from "@writeright/shared";
-import { replaceRange, type EditableElement } from "./editable";
+import { replaceRange, replaceAll, type EditableElement } from "./editable";
 import { localizeIssue, UI_HE } from "./i18n";
 
 export type WidgetState = "loading" | "clean" | "issues" | "error" | "off";
@@ -378,7 +378,11 @@ export class Widget {
         corrected.addEventListener("click", (e) => {
           e.preventDefault();
           if (this.target) {
-            replaceRange(this.target, issue.offset, issue.offset + issue.length, firstSuggestion.value);
+            if (issue.ruleId === "gemini-correction") {
+              replaceAll(this.target, firstSuggestion.value);
+            } else {
+              replaceRange(this.target, issue.offset, issue.offset + issue.length, firstSuggestion.value);
+            }
           }
           this.cb.onApply(issue, firstSuggestion.value);
         });

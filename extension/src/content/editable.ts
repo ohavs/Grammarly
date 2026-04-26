@@ -81,6 +81,30 @@ export function replaceRange(
   el.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+export function replaceAll(el: EditableElement, text: string): void {
+  el.focus();
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+    el.select();
+    if (document.execCommand) {
+      try {
+        if (document.execCommand("insertText", false, text)) return;
+      } catch {}
+    }
+    el.value = text;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.setSelectionRange(text.length, text.length);
+  } else {
+    if (document.execCommand) {
+      try {
+        document.execCommand("selectAll", false);
+        if (document.execCommand("insertText", false, text)) return;
+      } catch {}
+    }
+    el.innerText = text;
+    el.dispatchEvent(new InputEvent("input", { bubbles: true, data: text, inputType: "insertText" }));
+  }
+}
+
 function findRangeFromTextOffsets(
   root: HTMLElement,
   start: number,
