@@ -116,10 +116,28 @@ export class Widget {
       this.host.style.display = "none";
       return;
     }
-    const top = rect.bottom - 28;
-    const left = rect.right - 36;
+
+    const badgeHeight = 24;
+    const gap = 4;
+    const viewportH = window.innerHeight;
+    const viewportW = window.innerWidth;
+    const spaceBelow = viewportH - rect.bottom;
+    const spaceAbove = rect.top;
+
+    let top: number;
+    if (spaceBelow >= badgeHeight + gap) {
+      top = rect.bottom + gap;
+    } else if (spaceAbove >= badgeHeight + gap) {
+      top = rect.top - badgeHeight - gap;
+    } else {
+      top = rect.bottom - badgeHeight - gap;
+    }
+
+    const rightOffset = Math.max(4, viewportW - rect.right);
     this.button.style.top = `${top}px`;
-    this.button.style.left = `${left}px`;
+    this.button.style.left = "auto";
+    this.button.style.right = `${rightOffset}px`;
+
     if (this.panel && this.isPanelOpen) {
       this.positionPanel();
     }
