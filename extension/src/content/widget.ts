@@ -1,6 +1,7 @@
 import type { Issue } from "@writeright/shared";
 import { replaceRange, type EditableElement } from "./editable";
 import { localizeIssue, UI_HE } from "./i18n";
+import STYLES from "./styles.css?inline";
 
 export type WidgetState = "loading" | "clean" | "issues" | "error" | "off";
 
@@ -11,6 +12,7 @@ interface WidgetCallbacks {
 
 export class Widget {
   private host: HTMLDivElement;
+  private shadow: ShadowRoot;
   private button: HTMLButtonElement;
   private panel: HTMLDivElement | null = null;
   private state: WidgetState = "loading";
@@ -23,9 +25,18 @@ export class Widget {
 
   constructor(cb: WidgetCallbacks) {
     this.cb = cb;
+
+    // Zero-size fixed anchor in the light DOM — never hidden by page CSS
     this.host = document.createElement("div");
-    this.host.className = "wr-host";
     this.host.setAttribute("data-wr", "true");
+    this.host.style.cssText =
+      "position:fixed;top:0;left:0;width:0;height:0;pointer-events:none;z-index:2147483646;";
+
+    // Shadow root completely isolates our CSS from the page
+    this.shadow = this.host.attachShadow({ mode: "open" });
+    const styleEl = document.createElement("style");
+    styleEl.textContent = STYLES;
+    this.shadow.appendChild(styleEl);
 
     this.button = document.createElement("button");
     this.button.className = "wr-button";
@@ -33,6 +44,7 @@ export class Widget {
     this.button.dataset.state = "loading";
     this.button.innerHTML =
       '<span class="wr-mark">WR</span><span class="wr-count" hidden></span>';
+    this.button.style.display = "none";
     this.button.addEventListener("mousedown", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -42,10 +54,9 @@ export class Widget {
       e.stopPropagation();
       this.togglePanel();
     });
-    this.host.appendChild(this.button);
+    this.shadow.appendChild(this.button);
 
     document.documentElement.appendChild(this.host);
-    this.host.style.display = "none";
 
     window.addEventListener("scroll", this.scheduleReposition, true);
     window.addEventListener("resize", this.scheduleReposition);
@@ -54,13 +65,13 @@ export class Widget {
   attach(target: EditableElement) {
     if (this.target === target) return;
     this.target = target;
-    this.host.style.display = "";
+    this.button.style.display = "";
     this.reposition();
   }
 
   detach() {
     this.target = null;
-    this.host.style.display = "none";
+    this.button.style.display = "none";
     this.closePanel();
   }
 
@@ -113,9 +124,10 @@ export class Widget {
     if (!this.target) return;
     const rect = this.target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) {
-      this.host.style.display = "none";
+      this.button.style.display = "none";
       return;
     }
+    this.button.style.display = "";
     const top = rect.bottom - 28;
     const left = rect.right - 36;
     this.button.style.top = `${top}px`;
@@ -143,7 +155,7 @@ export class Widget {
         e.preventDefault();
         e.stopPropagation();
       });
-      this.host.appendChild(this.panel);
+      this.shadow.appendChild(this.panel);
     }
     this.isPanelOpen = true;
     this.renderPanel();
@@ -162,8 +174,8 @@ export class Widget {
 
   private onOutsideMouseDown = (e: MouseEvent) => {
     if (!this.panel) return;
-    const t = e.target as Node;
-    if (this.panel.contains(t) || this.button.contains(t)) return;
+    // composedPath() pierces shadow boundaries — if host is in the path, click was inside our widget
+    if (e.composedPath().includes(this.host)) return;
     this.closePanel();
   };
 
