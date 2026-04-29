@@ -6,6 +6,7 @@ import type { Formality } from "@writeright/shared";
 import "./popup.css";
 
 const FORMALITIES: Formality[] = ["informal", "neutral", "formal"];
+const SNOOZE_PRESETS = [5, 10, 15, 30, 60];
 
 function Popup() {
   const [enabled, setEnabled] = useState(true);
@@ -14,6 +15,9 @@ function Popup() {
   const [newWord, setNewWord] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [apiKeySaved, setApiKeySaved] = useState(false);
+  const [snoozeMinutes, setSnoozeMinutes] = useState(10);
+  const [snoozeInput, setSnoozeInput] = useState("10");
+  const [snoozeSaved, setSnoozeSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -23,6 +27,9 @@ function Popup() {
         setFormality(res.formality);
         setDictionary(res.personalDictionary);
         setApiKey(res.geminiApiKey ?? "");
+        const mins = res.snoozeMinutes ?? 10;
+        setSnoozeMinutes(mins);
+        setSnoozeInput(String(mins));
         setLoaded(true);
       })
       .catch((err) => {
@@ -53,6 +60,23 @@ function Popup() {
       type: "update-settings",
       patch: { formality: value },
     });
+  }
+
+  async function saveSnoozeMinutes(mins: number) {
+    const clamped = Math.max(1, Math.min(1440, mins));
+    setSnoozeMinutes(clamped);
+    setSnoozeInput(String(clamped));
+    await sendMessage({ type: "update-settings", patch: { snoozeMinutes: clamped } });
+    setSnoozeSaved(true);
+    setTimeout(() => setSnoozeSaved(false), 1500);
+  }
+
+  async function handleSnoozeSubmit(e: Event) {
+    e.preventDefault();
+    const parsed = parseInt(snoozeInput, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      await saveSnoozeMinutes(parsed);
+    }
   }
 
   async function addWord(e: Event) {
@@ -105,6 +129,32 @@ function Popup() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="section">
+        <h3>Snooze duration</h3>
+        <div className="snooze-presets">
+          {SNOOZE_PRESETS.map((m) => (
+            <button
+              key={m}
+              data-active={snoozeMinutes === m}
+              onClick={() => saveSnoozeMinutes(m)}
+            >
+              {m}m
+            </button>
+          ))}
+        </div>
+        <form onSubmit={handleSnoozeSubmit} className="snooze-form">
+          <input
+            type="number"
+            min="1"
+            max="1440"
+            value={snoozeInput}
+            onInput={(e) => setSnoozeInput((e.target as HTMLInputElement).value)}
+          />
+          <span className="snooze-unit">דקות</span>
+          <button type="submit">{snoozeSaved ? "נשמר ✓" : "שמור"}</button>
+        </form>
       </div>
 
       <div className="section">

@@ -7,6 +7,7 @@ export type WidgetState = "loading" | "clean" | "issues" | "error" | "off";
 interface WidgetCallbacks {
   onApply(issue: Issue, replacement: string): void;
   onDismiss(issue: Issue): void;
+  onSnooze(): void;
 }
 
 const STATE_COLORS: Record<WidgetState, string> = {
@@ -16,6 +17,9 @@ const STATE_COLORS: Record<WidgetState, string> = {
   error: "#dc2626",
   off: "#94a3b8",
 };
+
+const DRAG_THRESHOLD = 5;
+const DROP_ZONE_RADIUS = 40;
 
 function applyButtonStyles(btn: HTMLButtonElement) {
   const set = (k: string, v: string) => btn.style.setProperty(k, v, "important");
@@ -34,7 +38,7 @@ function applyButtonStyles(btn: HTMLButtonElement) {
   set("background", "#64748b");
   set("color", "#ffffff");
   set("font", "600 11px/24px system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif");
-  set("cursor", "pointer");
+  set("cursor", "grab");
   set("box-shadow", "0 2px 8px rgba(0,0,0,.25)");
   set("user-select", "none");
   set("z-index", "2147483647");
@@ -53,6 +57,7 @@ function applyButtonStyles(btn: HTMLButtonElement) {
   set("max-width", "none");
   set("max-height", "none");
   set("white-space", "nowrap");
+  set("transition", "box-shadow 0.15s");
 }
 
 function applyPanelStyles(panel: HTMLDivElement) {
@@ -83,9 +88,39 @@ function applyPanelStyles(panel: HTMLDivElement) {
   set("box-sizing", "border-box");
 }
 
+function applyDropZoneStyles(zone: HTMLDivElement) {
+  const set = (k: string, v: string) => zone.style.setProperty(k, v, "important");
+  set("position", "fixed");
+  set("bottom", "40px");
+  set("left", "50%");
+  set("transform", "translateX(-50%) scale(1)");
+  set("width", "64px");
+  set("height", "64px");
+  set("border-radius", "50%");
+  set("background", "rgba(239,68,68,0.9)");
+  set("color", "#ffffff");
+  set("display", "flex");
+  set("align-items", "center");
+  set("justify-content", "center");
+  set("font-size", "26px");
+  set("font-weight", "700");
+  set("font-family", "system-ui,-apple-system,sans-serif");
+  set("z-index", "2147483647");
+  set("box-shadow", "0 4px 24px rgba(239,68,68,0.45)");
+  set("transition", "transform 0.12s, box-shadow 0.12s");
+  set("pointer-events", "none");
+  set("user-select", "none");
+  set("cursor", "default");
+  set("margin", "0");
+  set("padding", "0");
+  set("border", "3px solid rgba(255,255,255,0.35)");
+  set("box-sizing", "border-box");
+}
+
 export class Widget {
   private button: HTMLButtonElement;
   private panel: HTMLDivElement | null = null;
+  private dropZone: HTMLDivElement | null = null;
   private state: WidgetState = "loading";
   private issues: Issue[] = [];
   private dismissed = new Set<string>();
@@ -93,6 +128,18 @@ export class Widget {
   private cb: WidgetCallbacks;
   private isPanelOpen = false;
   private repositionRaf = 0;
+
+  // Drag state
+  private dragStartX = 0;
+  private dragStartY = 0;
+  private dragOffsetX = 0;
+  private dragOffsetY = 0;
+  private isDragging = false;
+  private dragMoved = false;
+
+  // Pinned position after user drags
+  private pinnedX: number | null = null;
+  private pinnedY: number | null = null;
 
   constructor(cb: WidgetCallbacks) {
     this.cb = cb;
@@ -106,13 +153,14 @@ export class Widget {
 
     applyButtonStyles(this.button);
 
-    this.button.addEventListener("mousedown", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    });
+    this.button.addEventListener("mousedown", this.onButtonMouseDown);
     this.button.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
+      if (this.dragMoved) {
+        this.dragMoved = false;
+        return;
+      }
       this.togglePanel();
     });
 
@@ -123,11 +171,122 @@ export class Widget {
     window.addEventListener("resize", this.scheduleReposition);
   }
 
+  // ── Drag handling ──────────────────────────────────────────────────────────
+
+  private onButtonMouseDown = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const btnRect = this.button.getBoundingClientRect();
+    this.dragStartX = e.clientX;
+    this.dragStartY = e.clientY;
+    this.dragOffsetX = e.clientX - btnRect.left;
+    this.dragOffsetY = e.clientY - btnRect.top;
+    this.isDragging = false;
+    this.dragMoved = false;
+
+    document.addEventListener("mousemove", this.onDragMove, true);
+    document.addEventListener("mouseup", this.onDragEnd, true);
+  };
+
+  private onDragMove = (e: MouseEvent) => {
+    const dx = e.clientX - this.dragStartX;
+    const dy = e.clientY - this.dragStartY;
+
+    if (!this.isDragging) {
+      if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+      this.isDragging = true;
+      this.dragMoved = true;
+      this.closePanel();
+      this.button.style.setProperty("cursor", "grabbing", "important");
+      this.button.style.setProperty("box-shadow", "0 6px 20px rgba(0,0,0,.35)", "important");
+      this.showDropZone();
+    }
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const btnW = this.button.offsetWidth;
+    const btnH = this.button.offsetHeight;
+    const newLeft = Math.max(0, Math.min(vw - btnW, e.clientX - this.dragOffsetX));
+    const newTop = Math.max(0, Math.min(vh - btnH, e.clientY - this.dragOffsetY));
+
+    this.button.style.setProperty("left", `${newLeft}px`, "important");
+    this.button.style.setProperty("top", `${newTop}px`, "important");
+
+    this.updateDropZoneHover(e.clientX, e.clientY);
+  };
+
+  private onDragEnd = (e: MouseEvent) => {
+    document.removeEventListener("mousemove", this.onDragMove, true);
+    document.removeEventListener("mouseup", this.onDragEnd, true);
+
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    this.button.style.setProperty("cursor", "grab", "important");
+    this.button.style.setProperty("box-shadow", "0 2px 8px rgba(0,0,0,.25)", "important");
+
+    if (this.isOverDropZone(e.clientX, e.clientY)) {
+      this.hideDropZone();
+      this.cb.onSnooze();
+      return;
+    }
+
+    // Pin button at the position the user dropped it
+    const btnRect = this.button.getBoundingClientRect();
+    this.pinnedX = btnRect.left;
+    this.pinnedY = btnRect.top;
+
+    this.hideDropZone();
+  };
+
+  private showDropZone() {
+    if (this.dropZone) return;
+    this.dropZone = document.createElement("div");
+    this.dropZone.setAttribute("data-wr", "true");
+    this.dropZone.textContent = "✕";
+    applyDropZoneStyles(this.dropZone);
+    document.documentElement.appendChild(this.dropZone);
+  }
+
+  private hideDropZone() {
+    if (this.dropZone) {
+      this.dropZone.remove();
+      this.dropZone = null;
+    }
+  }
+
+  private updateDropZoneHover(mouseX: number, mouseY: number) {
+    if (!this.dropZone) return;
+    if (this.isOverDropZone(mouseX, mouseY)) {
+      this.dropZone.style.setProperty("transform", "translateX(-50%) scale(1.3)", "important");
+      this.dropZone.style.setProperty("box-shadow", "0 8px 32px rgba(239,68,68,0.65)", "important");
+    } else {
+      this.dropZone.style.setProperty("transform", "translateX(-50%) scale(1)", "important");
+      this.dropZone.style.setProperty("box-shadow", "0 4px 24px rgba(239,68,68,0.45)", "important");
+    }
+  }
+
+  private isOverDropZone(mouseX: number, mouseY: number): boolean {
+    if (!this.dropZone) return false;
+    const rect = this.dropZone.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.sqrt((mouseX - cx) ** 2 + (mouseY - cy) ** 2);
+    return dist < DROP_ZONE_RADIUS;
+  }
+
+  // ── Public API ─────────────────────────────────────────────────────────────
+
   attach(target: EditableElement) {
     if (this.target === target) return;
     this.target = target;
     this.button.style.setProperty("display", "inline-flex", "important");
-    this.reposition();
+    if (this.pinnedX !== null && this.pinnedY !== null) {
+      this.button.style.setProperty("left", `${this.pinnedX}px`, "important");
+      this.button.style.setProperty("top", `${this.pinnedY}px`, "important");
+    } else {
+      this.reposition();
+    }
   }
 
   detach() {
@@ -156,9 +315,14 @@ export class Widget {
   destroy() {
     window.removeEventListener("scroll", this.scheduleReposition, true);
     window.removeEventListener("resize", this.scheduleReposition);
+    document.removeEventListener("mousemove", this.onDragMove, true);
+    document.removeEventListener("mouseup", this.onDragEnd, true);
     this.button.remove();
     if (this.panel) this.panel.remove();
+    this.hideDropZone();
   }
+
+  // ── Private helpers ────────────────────────────────────────────────────────
 
   private visibleIssues(): Issue[] {
     return this.issues.filter((i) => !this.dismissed.has(i.id));
@@ -185,6 +349,8 @@ export class Widget {
 
   private reposition() {
     if (!this.target) return;
+    // Don't override a user-pinned position
+    if (this.pinnedX !== null) return;
     const rect = this.target.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) {
       this.button.style.setProperty("display", "none", "important");
@@ -246,18 +412,20 @@ export class Widget {
   };
 
   private positionPanel() {
-    if (!this.panel || !this.target) return;
-    const rect = this.target.getBoundingClientRect();
+    if (!this.panel) return;
+    const btnRect = this.button.getBoundingClientRect();
     const panelHeight = this.panel.offsetHeight || 200;
     const panelWidth = this.panel.offsetWidth || 320;
     const viewportH = window.innerHeight;
+    const viewportW = window.innerWidth;
 
-    let top = rect.bottom + 6;
-    if (rect.bottom + panelHeight > viewportH && rect.top > panelHeight) {
-      top = rect.top - panelHeight - 6;
+    let top = btnRect.bottom + 6;
+    if (btnRect.bottom + panelHeight > viewportH && btnRect.top > panelHeight) {
+      top = btnRect.top - panelHeight - 6;
     }
-    let left = rect.right - panelWidth;
+    let left = btnRect.right - panelWidth;
     if (left < 8) left = 8;
+    if (left + panelWidth > viewportW - 8) left = viewportW - panelWidth - 8;
 
     this.panel.style.setProperty("top", `${top}px`, "important");
     this.panel.style.setProperty("left", `${left}px`, "important");

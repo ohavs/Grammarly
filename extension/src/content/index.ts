@@ -1,6 +1,7 @@
 import { isEditable, getText, type EditableElement } from "./editable";
 import { Widget } from "./widget";
 import { sendMessage } from "../lib/messages";
+import { getSnoozeUntil, setSnoozeUntil } from "../lib/storage";
 import type {
   CheckResponse,
   CheckErrorResponse,
@@ -22,6 +23,8 @@ let activeTarget: EditableElement | null = null;
 let analyzeTimer: number | null = null;
 let analysisSeq = 0;
 let enabled = true;
+let snoozeMinutes = 10;
+let snoozeTimer: number | null = null;
 
 function ensureWidget(): Widget {
   if (!widget) {
@@ -32,15 +35,60 @@ function ensureWidget(): Widget {
       onDismiss: () => {
         // dismissed state lives inside the widget
       },
+      onSnooze: handleSnooze,
     });
   }
   return widget;
+}
+
+async function handleSnooze() {
+  const until = Date.now() + snoozeMinutes * 60_000;
+  await setSnoozeUntil(until);
+  enabled = false;
+  activeTarget = null;
+  if (widget) {
+    widget.setState("off");
+    widget.detach();
+  }
+  scheduleSnoozeWakeup(until);
+  console.log(`[wr] snoozed for ${snoozeMinutes} min until`, new Date(until).toLocaleTimeString());
+}
+
+function scheduleSnoozeWakeup(until: number) {
+  if (snoozeTimer !== null) {
+    clearTimeout(snoozeTimer);
+    snoozeTimer = null;
+  }
+  const remaining = until - Date.now();
+  if (remaining <= 0) return;
+  snoozeTimer = window.setTimeout(async () => {
+    snoozeTimer = null;
+    await setSnoozeUntil(0);
+    enabled = true;
+    console.log("[wr] snooze ended, re-enabling");
+    // Re-attach if there's a currently focused editable
+    const el = document.activeElement;
+    if (el && isEditable(el)) {
+      activeTarget = el;
+      ensureWidget().attach(el);
+      triggerAnalysis(true);
+    }
+  }, remaining);
 }
 
 async function loadSettings() {
   try {
     const res = await sendMessage<SettingsResponse>({ type: "get-settings" });
     enabled = res.enabled;
+    snoozeMinutes = res.snoozeMinutes ?? 10;
+
+    // Check if we're currently in a snooze period
+    const snoozeUntil = await getSnoozeUntil();
+    if (snoozeUntil > Date.now()) {
+      enabled = false;
+      scheduleSnoozeWakeup(snoozeUntil);
+    }
+
     if (!enabled && widget) {
       widget.setState("off");
     }

@@ -28,6 +28,7 @@ export interface SettingsResponse {
   formality: Formality;
   personalDictionary: string[];
   geminiApiKey: string;
+  snoozeMinutes: number;
 }
 
 export interface UpdateSettingsRequest {
@@ -36,6 +37,7 @@ export interface UpdateSettingsRequest {
     enabled: boolean;
     formality: Formality;
     geminiApiKey: string;
+    snoozeMinutes: number;
   }>;
 }
 

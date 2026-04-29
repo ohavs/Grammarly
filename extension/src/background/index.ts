@@ -45,6 +45,7 @@ async function handle(req: Request): Promise<Response> {
         formality: s.formality,
         personalDictionary: s.personalDictionary,
         geminiApiKey: s.geminiApiKey,
+        snoozeMinutes: s.snoozeMinutes,
       };
     }
     case "update-settings": {
